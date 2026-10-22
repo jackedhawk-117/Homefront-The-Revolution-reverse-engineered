@@ -439,15 +439,49 @@ Following in-game combat testing with a 12-member Resistance squad, three critic
 
 ## Phase 8: F1 Perspective Hotkey Toggle & Right-Click Instant ADS Snap (October 22, 2026)
 
-### 1. Root Cause Analysis of Previous ADS Limitation
-- In Phase 7, querying weapon zoom mode (`IZoomMode::IsZoomed`) created a state dependency: `CWeapon` checks `CPlayer::IsThirdPerson()` before initiating the zoom transition. Because `IsThirdPerson()` returned 1, `CWeapon` bypassed `StartZoom()`, preventing `IsZoomed()` from ever returning true.
-- *Solution:* Direct hardware input evaluation using `USER32.dll!GetAsyncKeyState` (imported in IAT at `0x141f7e240`).
+### 1. Architectural Concept
+- Direct hardware input evaluation using `USER32.dll!GetAsyncKeyState` (imported in IAT at `0x141f7e240`).
   1. **F1 Hotkey:** Edge-triggered latch flips `g_thirdPersonEnabled` between 0 and 1. By default, the game starts in 1st person (`0`).
-  2. **Right Mouse Button (`VK_RBUTTON` = 0x02):** While in 3rd person, holding Right-Click instantly reports `IsThirdPerson() == 0`, allowing `CWeapon` to execute full vanilla iron sights / scope aiming with zero parallax. Releasing RMB instantly snaps back to OTS 3rd person.
+  2. **Right Mouse Button (`VK_RBUTTON` = 0x02):** While in 3rd person, holding Right-Click dynamically snaps to `0` (First Person), allowing `CWeapon` to execute full vanilla iron sights / scope aiming with zero parallax. Releasing RMB instantly snaps back to OTS 3rd person.
 
-### 2. Status & Deployment
+---
+
+## Phase 9: Loading Crash Resolution & Thread-Safe Architecture (October 22, 2026)
+
+### 1. Root Cause of Loading Screen Crash
+- In Phase 8, mutable state flags (`g_f1WasDown`, `g_thirdPersonEnabled`) were written directly into the code cave at `0x141f79ad0` located inside `.text`.
+- `.text` section flags are `0x60000020` (`IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ`, `Write = False`). Writing to `.text` triggered a hardware MMU `STATUS_ACCESS_VIOLATION` (0xC0000005) during level loading precache.
+- Furthermore, calling `GetAsyncKeyState` on worker threads (`<Thread #500>`) caused thread contention under Wine.
+
+### 2. Decoupled Thread-Safe Redesign
+1. **Thread-Safe Read-Only State Check (Patch #22A at `0x1406e1e0c`):**
+   - Replaces `CPlayer::IsThirdPerson()` in-place (24 bytes).
+   - If AI or remote entity (`[rcx + 0x29c] == 0`), returns `1` immediately.
+   - If local player, loads `g_isCurrentlyThirdPerson` from `.data` (`0x1425b1d02`) into `eax`.
+   - 100% read-only, 0 writes, 0 API calls, completely safe across all threads.
+2. **Main-Thread Frame Tick Hook (Patch #22B at `0x14093f357`):**
+   - Hooks camera update inside `CPlayerView::UpdateView()`, which executes strictly once per frame on the main GUI thread when playing in-game (never during level load).
+3. **Input Poll & Perspective Evaluator Stub (Patch #22C at `0x141f79ad0`):**
+   - Polls `VK_F1` with edge detection and updates `g_thirdPersonEnabled` in `.data` (`0x1425b1d00`).
+   - Polls `VK_RBUTTON` (RMB) when 3P is active; holding RMB sets `g_isCurrentlyThirdPerson = 0` (instant 1P ADS snap).
+   - All state flags reside in `.data` (`0xc0000040`, `PAGE_READWRITE`).
+   - Adheres 100% to the Zero-Data Modification Principle (memory is zero-initialized on disk).
+
+### 3. Applied Binary Patches
+
+| Patch # | Parameter / Component | Instruction VA | File Offset | Size | Original Bytes / Assembly | Applied Bytes / Assembly | Gameplay Impact |
+| :---: | :--- | :---: | :---: | :---: | :--- | :--- | :--- |
+| **#22A** | `ThirdPerson_ReadonlyState_Check` | `0x1406e1e0c` | `0x6e120c` | 24 B | `33c038819c02000074083881bd0100007405b801000000c3` | `b80100000080b99c0200000074090fb605e1feec019090c3` | Thread-safe read-only `IsThirdPerson`: AI returns 1, local player reads `.data` |
+| **#22B** | `ThirdPerson_ViewUpdate_Hook` | `0x14093f357` | `0x93e757` | 9 B | `488b02ff9028020000` | `e874a7630190909090` | Hooks `CPlayerView::UpdateView` to poll input once per frame on main thread |
+| **#22C** | `ThirdPerson_Input_Poll_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | `00` $\times 128$ | `4883ec28b970000000ff1561470000...` | F1 toggles 1P/3P (1P default); holding RMB switches to 1P iron sights/scopes; writes flags to `.data` |
+| **#23** | `cl_tpvDist` | `0x1408a481a` | `0x8a3c1a` | 8 B | `f30f101d86f37501` | `f30f101d0afb9401` | Tightens camera distance from 3.5m to 1.85m |
+| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e9e2a6630190...` | Intercepts view commit in `CPlayerView::UpdateView` |
+| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | 164 B | `00` $\times 164$ | `f30f104308f3...` | Applies $+0.38\text{m}$ Right-vector offset and $-0.18\text{m}$ elevation |
+| **#25** | `ThirdPerson_HolsterCleanup` | `0x1406f5183` | `0x6f4583` | 6 B | `8bfe400f94c7` | `bf0100000090` | Hides unowned socket weapons on Ethan's mesh |
+
+### 4. Status & Deployment
 - **Status:** **APPLIED & DEPLOYED TO STEAM**
   - Working binary: `/home/jackedhawk117/rework/Homefront2_Release.exe`
   - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
-  - **New Patched MD5:** `a22285289209320e54c51cdff2b6d656`
-  - **New Patched SHA256:** `d5b24405a61f50a2078e391e4646f567fac3ffb3a74038d3f6abad568b4c3021`
+  - **New Patched MD5:** `877fec6416a93a007693d4e79384c883`
+  - **New Patched SHA256:** `ee957425fd57414ebb92af6ae1b07e4893dc4fe9d99315e18d7fbed667a31e9f`

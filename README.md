@@ -60,8 +60,8 @@ flowchart LR
 | **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
 | **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
 | **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
-| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `a22285289209320e54c51cdff2b6d656` |
-| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `d5b24405a61f50a2078e391e4646f567fac3ffb3a74038d3f6abad568b4c3021` |
+| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `877fec6416a93a007693d4e79384c883` |
+| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `ee957425fd57414ebb92af6ae1b07e4893dc4fe9d99315e18d7fbed667a31e9f` |
 
 ---
 
@@ -157,10 +157,13 @@ For detailed reverse engineering notes, decompilations, and mathematical formula
 ## Third-Person Over-the-Shoulder (OTS) Camera System
 
 CryEngine 3.8 in *Homefront: The Revolution* natively incorporates complete third-person camera and character mesh pipelines:
-- `CPlayer::IsThirdPerson()` (`0x1406e1e0c`): Client check unlocked to permanently return `1` for the local player (Patch #22).
-- `ProcessThirdPersonView()` (`0x140937478`): Native camera system with collision raycast occlusion checks (`0x1406e6ff8`).
-- `cl_tpvDist` (`0x1408a481a`): Default camera distance tightened from `3.5m` to `1.85m` (Patch #23).
-- Full third-person locomotion, sprint, crouch, cover, and shoot animations execute on player character Ethan Brady with detached 1P arm suppression.
+- **Default Perspective:** Game starts in 100% vanilla first-person mode by default.
+- **F1 Hotkey Switch:** Press **F1** at any time to toggle between 1st-person and 3rd-person OTS.
+- **Dynamic ADS Aiming:** While in 3rd-person OTS, hip firing remains in 3rd-person. Holding Right Mouse Button (RMB) dynamically snaps to vanilla 1st-person iron sights / scope aiming with zero parallax and laser-point accuracy, returning to OTS 3rd-person on release.
+- **Thread-Safe Architecture:** `CPlayer::IsThirdPerson()` (`0x1406e1e0c`) uses a 100% read-only check (Patch #22A) reading state from `.data`, completely eliminating write-protection access violations. Input polling executes once per frame on the main render thread inside `CPlayerView::UpdateView()` (`0x14093f357`, Patches #22B & #22C).
+- **Gears of War Camera Calibration:** Offset stub (`0x141f79b50`, Patches #24A & #24B) applies $+0.38\text{m}$ lateral right-shoulder offset and $-0.18\text{m}$ elevation lowering.
+- **Action Camera Distance:** Tightened from `3.5m` to `1.85m` (`0x1408a481a`, Patch #23).
+- **Holster Cleanup:** Suppresses unowned static default weapons on Ethan Brady's 3D mesh (`0x1406f5183`, Patch #25).
 
 See [`docs/THIRD_PERSON_CAMERA.md`](docs/THIRD_PERSON_CAMERA.md) for complete architectural analysis and assembly diffs.
 
@@ -172,7 +175,7 @@ See [`docs/THIRD_PERSON_CAMERA.md`](docs/THIRD_PERSON_CAMERA.md) for complete ar
 .
 ├── README.md                          # Master project documentation
 ├── LICENSE                            # MIT License
-├── patches.json                       # Machine-readable patch definitions (29 entries)
+├── patches.json                       # Machine-readable patch definitions (30 entries)
 ├── patcher.py                         # Standalone CLI binary patcher
 ├── docs/
 │   ├── REVERSE_ENGINEERING_NOTES.md  # Complete research notes (Phases 1–6)

@@ -1,8 +1,8 @@
 {
   "target_binary": "Homefront2_Release.exe",
   "vanilla_md5": "0326ea202fcd7ceb3760d14bc8d07f63",
-  "patched_md5": "a22285289209320e54c51cdff2b6d656",
-  "total_patches": 29,
+  "patched_md5": "877fec6416a93a007693d4e79384c883",
+  "total_patches": 30,
   "patches": [
     {
       "id": "1",
@@ -282,26 +282,38 @@
     },
     {
       "id": "22A",
-      "name": "ThirdPerson_DynamicSwitch_Hook",
+      "name": "ThirdPerson_ReadonlyState_Check",
       "va": "0x1406e1e0c",
       "offset": 7213580,
       "size": 24,
       "category": "Third-Person Camera",
-      "desc": "Hooks CPlayer::IsThirdPerson to redirect local client check to F1 toggle and RMB ADS evaluation stub",
+      "desc": "Replaces CPlayer::IsThirdPerson with thread-safe read-only check: AI returns 1, local player reads g_isCurrentlyThirdPerson from .data",
       "original_hex": "33c038819c02000074083881bd0100007405b801000000c3",
-      "patched_hex": "e9bf7c890190909090909090909090909090909090909090",
+      "patched_hex": "b80100000080b99c0200000074090fb605e1feec019090c3",
       "file_offset_hex": "0x6e120c"
     },
     {
       "id": "22B",
-      "name": "ThirdPerson_F1_RMB_Stub",
+      "name": "ThirdPerson_ViewUpdate_Hook",
+      "va": "0x14093f357",
+      "offset": 9693015,
+      "size": 9,
+      "category": "Third-Person Camera",
+      "desc": "Hooks CPlayerView::UpdateView frame tick to call F1 toggle and RMB ADS evaluation stub once per frame on main thread",
+      "original_hex": "488b02ff9028020000",
+      "patched_hex": "e874a7630190909090",
+      "file_offset_hex": "0x93e757"
+    },
+    {
+      "id": "22C",
+      "name": "ThirdPerson_Input_Poll_Stub",
       "va": "0x141f79ad0",
       "offset": 33001168,
       "size": 128,
       "category": "Third-Person Camera",
-      "desc": "F1 hotkey toggles 1P/3P mode (1st person by default); holding Right Mouse Button dynamically snaps to 1st-person iron sights / scope aiming",
+      "desc": "Main thread stub: F1 toggles 1P/3P (1st person default); holding RMB switches to 1P iron sights/scopes; writes state flags to .data",
       "original_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-      "patched_hex": "4885c9746d80b99c0200000074604883ec28b970000000ff1553470000f6c4807419803d4d000000007514c605440000000180353e00000001eb07c6053400000000803d2e00000000741cb902000000ff151a470000f6c480750c4883c428b801000000c34883c42831c0c3b801000000c331c0c30000cccccccccccccccccc",
+      "patched_hex": "4883ec28b970000000ff1561470000f6c4807419803d16826300007517c6050d8263000180350582630001eb07c605fd81630000803df5816300007421b902000000ff1528470000f6c4807511c605de816300014883c428b801000000c3c605cd816300004883c42831c0c3cccccccccccccccccccccccccccccccccccccccc",
       "file_offset_hex": "0x1f78ed0"
     },
     {
@@ -352,5 +364,6 @@
       "patched_hex": "bf0100000090",
       "file_offset_hex": "0x6f4583"
     }
-  ]
+  ],
+  "patched_sha256": "ee957425fd57414ebb92af6ae1b07e4893dc4fe9d99315e18d7fbed667a31e9f"
 }
