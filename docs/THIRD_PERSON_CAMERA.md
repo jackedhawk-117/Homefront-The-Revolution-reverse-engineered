@@ -1,7 +1,7 @@
-# Third-Person Over-the-Shoulder Camera System
+# Third-Person Over-the-Shoulder Camera & Dynamic Aiming System
 
 ## Overview
-This document details the reverse engineering, disassembly, and implementation of the Over-The-Shoulder (OTS) Third-Person Camera system in *Homefront: The Revolution* (CryEngine 3.8 x86-64).
+This document details the reverse engineering, disassembly, and implementation of the Over-The-Shoulder (OTS) Third-Person Camera and dynamic aiming system in *Homefront: The Revolution* (CryEngine 3.8 x86-64 PE).
 
 ---
 
@@ -11,12 +11,14 @@ This document details the reverse engineering, disassembly, and implementation o
 flowchart TD
     subgraph View Pipeline
         A["CPlayerView::UpdateView()<br><code>0x14093f2c8</code>"] --> B{"CPlayer::IsThirdPerson()<br><code>0x1406e1e0c</code>"}
-        B -->|Returns 0| C["ProcessFirstPersonView()<br><code>0x14093a2ec</code><br>• Camera inside head<br>• Render 1P detached arms"]
-        B -->|Returns 1| D["ProcessThirdPersonView()<br><code>0x140937478</code><br>• Distance: cl_tpvDist<br>• Bone track: Head/Neck<br>• Collision Sweep: <code>0x1406e6ff8</code>"]
+        B -->|Evaluator: 0 (ADS or Hacking)| C["ProcessFirstPersonView()<br><code>0x14093a2ec</code><br>• 1P Iron Sights / Scope Alignment<br>• Smartphone Hacking Minigame UI<br>• Zero aiming/laser parallax"]
+        B -->|Evaluator: 1 (Traversal / Hipfire)| D["ProcessThirdPersonView()<br><code>0x140937478</code><br>• Distance: 1.85m (cl_tpvDist)<br>• Bone track: Head/Neck<br>• Collision Sweep: <code>0x1406e6ff8</code>"]
+        D --> E["OTS Calibration Stub<br><code>0x141f79b00</code><br>• Lateral Right Shoulder: +0.38m<br>• Elevation Lowering: -0.18m"]
     end
     subgraph Character Mesh Management
-        E["Mesh Visibility Manager<br><code>0x140704ee0</code>"] --> F{"IsThirdPerson()"}
-        F -->|1| G["<code>0x1406f5068</code>: Unhide Ethan Brady 3D Body (Slot 0)<br><code>0x140826318</code>: Suppress 1P floating arms"]
+        F["Mesh Visibility Manager<br><code>0x140704ee0</code>"] --> G{"IsThirdPerson()"}
+        G -->|1 (3P)| H["<code>0x1406f5068</code>: Show Ethan Brady 3D Body (Slot 5)<br><code>0x140826318</code>: Suppress 1P floating arms<br><code>0x1406f5183</code>: Hide unowned socket attachments"]
+        G -->|0 (1P ADS)| I["<code>0x1406f5068</code>: Suppress 3P Body (prevent clipping)<br><code>0x140826318</code>: Render 1P weapon model & iron sights"]
     end
 ```
 
@@ -24,44 +26,60 @@ flowchart TD
 
 ## 2. Reverse Engineering Findings
 
-### A. Client State Check in `CPlayer::IsThirdPerson` (`0x1406e1e0c`)
-```assembly
-0x1406e1e0c: xor    eax, eax
-0x1406e1e0e: cmp    byte ptr [rcx + 0x29c], al   ; IsClient?
-0x1406e1e14: je     0x1406e1e1e                  ; AI proxies jump here and return 1
-0x1406e1e16: cmp    byte ptr [rcx + 0x1bd], al   ; m_stats.isThirdPerson
-0x1406e1e1c: je     0x1406e1e23                  ; If 0, jump to ret 0 (First Person)
-0x1406e1e1e: mov    eax, 1
-0x1406e1e23: ret
-```
-- For AI/companions, `[rcx + 0x29c]` is 0, so the engine always returned 1 (rendering full 3D meshes).
-- For the local client player, `[rcx + 0x29c]` is 1, and `[rcx + 0x1bd]` was 0, forcing first-person view.
-- **Patch:** By NOPing the jump at `0x1406e1e1c` (`74 05` $\to$ `90 90`), the client falls through to `mov eax, 1; ret`, engaging full third-person camera and 3D character body rendering.
+### A. Dynamic 1P / 3P Switch (`CPlayer::IsThirdPerson` at `0x1406e1e0c` & `0x141f79ad0`)
+- In CryEngine, the local player's view and rendering pipelines both check `CPlayer::IsThirdPerson()`.
+- The engine includes a built-in state evaluator at `0x1406e3e88` taking `CPlayer::m_pController` (`[CPlayer + 0x1160]`):
+  - Queries `IZoomMode::IsZoomed()`: returns `0` if player is Aiming Down Sights (ADS).
+  - Queries `CPlayer::IsInteracting()`: returns `0` if player is using smartphone / hacking minigame.
+  - Returns `1` during normal hipfire, sprinting, walking, and traversal.
+- **Hook & Stub:**
+  - `0x1406e1e0c` jumps to code cave at `0x141f79ad0`:
+    ```assembly
+    0x141f79ad0: xor    eax, eax
+    0x141f79ad2: cmp    byte ptr [rcx + 0x29c], al      ; IsClient check
+    0x141f79ad8: je     0x141f79af7                     ; AI / remote players return 1
+    0x141f79ada: mov    rax, qword ptr [rcx + 0x1160]   ; Controller*
+    0x141f79ae1: test   rax, rax
+    0x141f79ae4: je     0x141f79af7
+    0x141f79ae6: sub    rsp, 0x28
+    0x141f79aea: mov    rcx, rax
+    0x141f79aed: call   0x1406e3e88                     ; Dynamic evaluator
+    0x141f79af2: add    rsp, 0x28
+    0x141f79af6: ret
+    0x141f79af7: mov    eax, 1
+    0x141f79afc: ret
+    ```
 
-### B. Tight Action Camera Distance (`cl_tpvDist` at `0x1408a481a`)
-- CryEngine's default third-person distance was `3.5f` meters (`0x142003ba8`), which placed the camera too far away.
-- An existing `1.85f` IEEE 754 float constant was identified at `0x1421f432c` in `.rdata`.
-- By redirecting the instruction displacement in `.text`:
-  ```assembly
-  ; Vanilla (3.5f):
-  0x1408a481a: movss xmm3, dword ptr [rip + 0x175f386]  ; -> 0x142003ba8 (3.5f)
-  ; Patched (1.85f):
-  0x1408a481a: movss xmm3, dword ptr [rip + 0x194fb0a]  ; -> 0x1421f432c (1.85f)
-  ```
-  The camera defaults to a tight, cinematic action distance adhering to the **Zero-Data Modification Principle**.
+### B. Gears of War Over-The-Shoulder Calibration (`0x14093f469` & `0x141f79b00`)
+- In `CPlayerView::UpdateView`, right after `ProcessThirdPersonView`, the camera position and rotation quaternion `q = (x, y, z, w)` are committed.
+- To produce a true *Gears of War* perspective:
+  - **Height:** The camera was lowered by `-0.18m` ($18\text{ cm}$) so the viewpoint sits directly at shoulder height rather than looking down at Ethan's scalp.
+  - **Lateral Right-Shoulder Offset:** From the view orientation quaternion $\hat{q}$, the horizontal Right-basis vector is derived:
+    $$R_x = 1 - 2(q_y^2 + q_z^2)$$
+    $$R_y = 2(q_x q_y + q_w q_z)$$
+    The position is shifted along $\vec{R}$ by $+0.38\text{ m}$ ($38\text{ cm}$), maintaining the camera over Ethan's right shoulder across all 360° yaw rotations.
+
+### C. Character Model Holstered Weapons Cleanup (`0x1406f5183`)
+- In `CPlayer::UpdateCharacterAttachments()`, default socket attachments defined in the character mesh (shotgun on back, pistol on holster) were rendered even when not in inventory.
+- At `0x1406f5183`, forcing `edi = 1` calls `IAttachment::HideAttachment(1)` for body sockets, removing unowned default props while preserving Ethan's active held weapon.
 
 ---
 
 ## 3. Binary Patch Specifications
 
-| Patch Name | Virtual Address | File Offset | Vanilla Bytes | Patched Bytes | Purpose |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `ThirdPerson_Activation` | `0x1406e1e1c` | `0x6e121c` | `74 05` | `90 90` | Forces `CPlayer::IsThirdPerson()` to return `1`, enabling full 3D Ethan Brady model and third-person view |
-| `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | `f3 0f 10 1d 86 f3 75 01` | `f3 0f 10 1d 0a fb 94 01` | Tightens default third-person camera back-distance from `3.5m` to `1.85m` |
+| Patch Name | Virtual Address | File Offset | Size | Vanilla Bytes | Patched Bytes | Purpose |
+| :--- | :--- | :--- | :---: | :--- | :--- | :--- |
+| `ThirdPerson_DynamicSwitch_Hook` | `0x1406e1e0c` | `0x6e120c` | 24 B | `33c038819c020000...` | `e9bf7c890190...` | Redirects `CPlayer::IsThirdPerson` to evaluator stub |
+| `ThirdPerson_DynamicSwitch_Stub` | `0x141f79ad0` | `0x1f78ed0` | 48 B | `00` $\times 48$ | `31c038819c020000...` | Evaluates ADS and hacking states for dynamic 1P/3P switching |
+| `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | 8 B | `f30f101d86f37501` | `f30f101d0afb9401` | Tightens camera distance from 3.5m to 1.85m |
+| `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e992a6630190...` | Intercepts view commit in `CPlayerView::UpdateView` |
+| `ThirdPerson_CameraOTS_Stub` | `0x141f79b00` | `0x1f78f00` | 172 B | `00` $\times 172$ | `f30f104308f30f5c...` | Applies $+0.38\text{m}$ Right-vector offset and $-0.18\text{m}$ elevation |
+| `ThirdPerson_HolsterCleanup` | `0x1406f5183` | `0x6f4583` | 6 B | `8bfe400f94c7` | `bf0100000090` | Hides unowned socket weapons on Ethan's mesh |
 
 ---
 
 ## 4. Verification Checksums
 
-- **Patched Binary MD5:** `30404f43336cbbd79f0de8ebfedf69c8`
-- **Patched Binary SHA256:** `8ce870faab2dc63cd66e14a5e35f6b716729d3c82a2f05df5dc16d20e893a6a0`
+- **Vanilla Binary MD5:** `0326ea202fcd7ceb3760d14bc8d07f63`
+- **Patched Binary MD5:** `c3402bd8800ec626ee65abc3ae87032c`
+- **Patched Binary SHA256:** `d970b57684e83bb4446b419783e47fc37a87585625015d25319ea1e60ef10ea5`

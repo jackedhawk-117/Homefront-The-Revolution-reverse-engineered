@@ -1,8 +1,8 @@
 {
   "target_binary": "Homefront2_Release.exe",
   "vanilla_md5": "0326ea202fcd7ceb3760d14bc8d07f63",
-  "patched_md5": "30404f43336cbbd79f0de8ebfedf69c8",
-  "total_patches": 25,
+  "patched_md5": "c3402bd8800ec626ee65abc3ae87032c",
+  "total_patches": 29,
   "patches": [
     {
       "id": "1",
@@ -281,16 +281,28 @@
       "file_offset_hex": "0x705727"
     },
     {
-      "id": "22",
-      "name": "ThirdPerson_Activation",
-      "va": "0x1406e1e1c",
-      "offset": 7213596,
-      "size": 2,
+      "id": "22A",
+      "name": "ThirdPerson_DynamicSwitch_Hook",
+      "va": "0x1406e1e0c",
+      "offset": 7213580,
+      "size": 24,
       "category": "Third-Person Camera",
-      "desc": "Enables full 3D player character model rendering and third-person camera system for local client",
-      "original_hex": "7405",
-      "patched_hex": "9090",
-      "file_offset_hex": "0x6e121c"
+      "desc": "Hooks CPlayer::IsThirdPerson to dynamically switch between 3rd-person OTS and 1st-person ADS/minigames",
+      "original_hex": "33c038819c02000074083881bd0100007405b801000000c3",
+      "patched_hex": "e9bf7c890190909090909090909090909090909090909090",
+      "file_offset_hex": "0x6e120c"
+    },
+    {
+      "id": "22B",
+      "name": "ThirdPerson_DynamicSwitch_Stub",
+      "va": "0x141f79ad0",
+      "offset": 33001168,
+      "size": 48,
+      "category": "Third-Person Camera",
+      "desc": "Evaluates aiming down sights (ADS) and hacking minigame states, returning 1st person when aiming/hacking and 3rd person during traversal",
+      "original_hex": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "patched_hex": "31c038819c020000741d488b81601100004885c074114883ec284889c1e896a376fe4883c428c3b801000000c3cccccc",
+      "file_offset_hex": "0x1f78ed0"
     },
     {
       "id": "23",
@@ -303,6 +315,42 @@
       "original_hex": "f30f101d86f37501",
       "patched_hex": "f30f101d0afb9401",
       "file_offset_hex": "0x8a3c1a"
+    },
+    {
+      "id": "24A",
+      "name": "ThirdPerson_CameraOTS_Hook",
+      "va": "0x14093f469",
+      "offset": 9693289,
+      "size": 16,
+      "category": "Third-Person Camera",
+      "desc": "Intercepts camera view position commit in CPlayerView::UpdateView to calibrate Gears of War OTS perspective",
+      "original_hex": "8b0389078b43048947048b4308894708",
+      "patched_hex": "e992a663019090909090909090909090",
+      "file_offset_hex": "0x93e869"
+    },
+    {
+      "id": "24B",
+      "name": "ThirdPerson_CameraOTS_Stub",
+      "va": "0x141f79b00",
+      "offset": 33001216,
+      "size": 172,
+      "category": "Third-Person Camera",
+      "desc": "Calculates +0.38m lateral right-shoulder offset via rotation quaternion basis vector and lowers elevation by -0.18m",
+      "original_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "patched_hex": "f30f104308f30f5c059b000000f30f114308f30f104b0cf30f105310f30f105b14f30f1063180f28c2f30f59c20f28ebf30f59ebf30f58c5f30f58c0f30f102d5c000000f30f5ce80f28c1f30f59c20f28d4f30f59d3f30f58c2f30f58c0f30f101d3e000000f30f59ebf30f59c3f30f582bf30f584304f30f112bf30f1143048b0389078b43048947048b4308894708e9e4589cfecccccccccccccccccccccc0000803f5c8fc23eec51383e",
+      "file_offset_hex": "0x1f78f00"
+    },
+    {
+      "id": "25",
+      "name": "ThirdPerson_HolsterCleanup",
+      "va": "0x1406f5183",
+      "offset": 7292291,
+      "size": 6,
+      "category": "Third-Person Camera",
+      "desc": "Forces IAttachment::HideAttachment on body sockets to clean up unowned default holstered weapons on Ethan mesh",
+      "original_hex": "8bfe400f94c7",
+      "patched_hex": "bf0100000090",
+      "file_offset_hex": "0x6f4583"
     }
   ]
 }

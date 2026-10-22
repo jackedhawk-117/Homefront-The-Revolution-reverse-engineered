@@ -398,3 +398,39 @@ Following in-game combat testing with a 12-member Resistance squad, three critic
 
 
 
+
+---
+
+## Phase 7: Over-The-Shoulder (OTS) Third-Person Camera & Dynamic Aiming System (October 22, 2026)
+
+### 1. Problem Analysis & Gameplay Requirements
+1. **Aiming & Laser Pointer Parallax:**
+   - In third-person perspective, weapon raycast fired towards the center of the screen, misaligning with the in-game weapon laser pointer.
+   - *Requirement:* Aiming Down Sights (ADS / Right-Click) must switch dynamically to the default first-person iron sights / scope view (zero parallax, laser precision), snapping back to OTS 3rd person on release.
+2. **Interactive Minigames & Smartphone Hacking:**
+   - Hacking doors/drones and smartphone puzzles broke when forced into 3rd person because the phone view was positioned off-camera.
+   - *Requirement:* Hacking and interactions must dynamically switch into first person to allow full visibility and functionality of interactive puzzles.
+3. **Camera Perspective Calibration (*Gears of War* OTS):**
+   - The initial third-person camera was placed too high (looking down at Ethan's scalp) and centered directly behind his spine.
+   - *Requirement:* Lower camera elevation to shoulder height and offset laterally over the right shoulder.
+4. **Player Model Extra Weapons Cleanup:**
+   - Ethan Brady's 3D mesh displayed default multiplayer socket attachments (shotgun on back, pistol on holster) even when not in inventory.
+   - *Requirement:* Hide static unowned socket attachments while preserving the active equipped weapon.
+
+### 2. Applied Binary Patches
+
+| Patch # | Parameter / Component | Instruction VA | File Offset | Size | Original Bytes / Assembly | Applied Bytes / Assembly | Gameplay Impact |
+| :---: | :--- | :---: | :---: | :---: | :--- | :--- | :--- |
+| **#22A** | ADS/Hack Hook | `0x1406e1e0c` | `0x6e120c` | 24 B | `33 c0 38 81 9c 02 00 00 ...` (vanilla leaf check) | `e9 bf 7c 89 01 90 ...` (`jmp 0x141f79ad0; 19 NOPs`) | Redirects `CPlayer::IsThirdPerson` to dynamic state evaluator |
+| **#22B** | ADS/Hack Evaluator Stub | `0x141f79ad0` | `0x1f78ed0` | 48 B | `00` $\times 48$ (zero padding cave in `.text`) | `31 c0 38 81 9c 02 00 00 74 1d 48 8b 81 60 11 00 00 48 85 c0 74 11 48 83 ec 28 48 89 c1 e8 96 a3 76 fe 48 83 c4 28 c3 b8 01 00 00 00 c3 cc cc cc` | Evaluates `0x1406e3e88`: returns 0 (1st person) if zoomed (ADS) or hacking; returns 1 (3rd person) during traversal/hipfire |
+| **#23** | `cl_tpvDist` (Camera Distance) | `0x1408a481a` | `0x8a3c1a` | 8 B | `f3 0f 10 1d 86 f3 75 01` (`3.5f`) | `f3 0f 10 1d 0a fb 94 01` (**`1.85f`**) | Tightens camera distance from 3.5m to 1.85m action perspective |
+| **#24A** | OTS Camera Hook | `0x14093f469` | `0x93e869` | 16 B | `8b 03 89 07 8b 43 04 89 47 04 8b 43 08 89 47 08` | `e9 92 a6 63 01 90 90 90 90 90 90 90 90 90 90 90` (`jmp 0x141f79b00; 11 NOPs`) | Intercepts view position commit in `CPlayerView::UpdateView` |
+| **#24B** | OTS Calibration Stub & Constants | `0x141f79b00` | `0x1f78f00` | 172 B | `00` $\times 172$ (zero padding cave in `.text`) | Full SSE basis-vector calibration stub (`+0.38m` Right-vector offset, `-0.18m` elevation) + float constants (`1.0f`, `0.38f`, `0.18f`) | Positions camera over the right shoulder with Ethan on the left side of the screen across 360° rotation; lowers viewpoint to upper shoulder level |
+| **#25** | Holster Attachment Cleanup | `0x1406f5183` | `0x6f4583` | 6 B | `8b fe 40 0f 94 c7` (`mov edi, esi; sete dil`) | `bf 01 00 00 00 90` (`mov edi, 1; nop`) | Forces `IAttachment::HideAttachment(1)` for default body sockets, removing unowned weapons on Ethan's back/hips |
+
+### 3. Status & Deployment
+- **Status:** **APPLIED & DEPLOYED TO STEAM**
+  - Working binary: `/home/jackedhawk117/rework/Homefront2_Release.exe`
+  - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
+  - **New Patched MD5:** `c3402bd8800ec626ee65abc3ae87032c`
+  - **New Patched SHA256:** `d970b57684e83bb4446b419783e47fc37a87585625015d25319ea1e60ef10ea5`
