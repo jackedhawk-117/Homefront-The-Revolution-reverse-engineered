@@ -1,0 +1,36 @@
+# Binaries and executables (Never commit copyrighted game binaries)
+*.exe
+*.dll
+*.pak
+*.bin
+*.dat
+
+# Dumps and debugging
+*.dmp
+*.log
+*.meta
+*.csf
+*.bmm
+*.bmc
+
+# Ghidra / IDA / REA project databases
+*.gpr
+*.rep/
+*.idb
+*.i64
+*.nam
+*.til
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Backups and temporary files
+*.vanilla
+*.bak
+*.orig
+*~
+.DS_Store
