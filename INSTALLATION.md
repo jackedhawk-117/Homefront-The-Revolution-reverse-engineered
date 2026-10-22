@@ -138,10 +138,10 @@ Once inside the campaign:
 4. **Squad Survivability & Aim:**
    - Observe followers during a firefight: they survive 12–15 bullets (4x durability) and reliably hit targets with center-mass marksmanship.
 5. **Third-Person OTS & Dynamic Aiming Controls:**
-   - The game starts in **1st person by default** for 100% vanilla campaign immersion and minigame usability.
-   - Press **F1** at any time to toggle dynamically into Over-The-Shoulder (OTS) 3rd-person mode.
-   - While in 3rd-person mode, hip firing remains in 3rd person. Hold **Right Mouse Button** (RMB) to dynamically snap into 1st-person iron sights / scope aiming with zero parallax. Releasing RMB immediately returns to 3rd-person OTS.
-   - Press **F1** again at any time to return to 1st person.
+   - Traversal and hipfiring are rendered in Over-The-Shoulder (OTS) 3rd-person mode (*Gears of War* offset: +0.38m Right, -0.18m elevation, 1.85m distance).
+   - Click **Right Mouse Button** (vanilla toggle ADS) to dynamically snap into 1st-person iron sights / reflex / sniper scope aiming with zero parallax and laser-point accuracy.
+   - Click **Right Mouse Button** again (toggle off) to return smoothly to 3rd-person OTS.
+   - Smartphone hacking minigames and interactive UI sequences automatically execute in first person.
 
 ---
 
@@ -171,7 +171,7 @@ In Steam: Right-click **Homefront: The Revolution** $\to$ **Properties** $\to$ *
 **A:** **No.** *Homefront: The Revolution* single-player campaign has no anti-cheat software (Easy Anti-Cheat or BattlEye are not used in campaign mode). This mod is strictly for single-player offline campaign play.
 
 #### Q: What happens if Steam updates the game?
-**A:** If Steam downloads an update or verifies game files, it will simply replace `Homefront2_Release.exe` with vanilla. You just re-run `python3 patcher.py --apply` to re-enable all 30 patches.
+**A:** If Steam downloads an update or verifies game files, it will simply replace `Homefront2_Release.exe` with vanilla. You just re-run `python3 patcher.py --apply` to re-enable all 29 patches.
 
 #### Q: Why does the patcher report a byte mismatch?
 **A:** Make sure your executable is the latest 64-bit Steam Release version (`Homefront2_Release.exe`, 41,827,328 bytes, MD5: `0326ea202fcd7ceb3760d14bc8d07f63`). If your game is already patched, `python3 patcher.py --verify` will show which patches are active.
