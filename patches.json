@@ -1,8 +1,8 @@
 {
   "target_binary": "Homefront2_Release.exe",
   "vanilla_md5": "0326ea202fcd7ceb3760d14bc8d07f63",
-  "patched_md5": "8a13beba442d7deebc7fbbf442616992",
-  "total_patches": 29,
+  "patched_md5": "966612506e1e4781ecd49daf6a0a77d5",
+  "total_patches": 28,
   "patches": [
     {
       "id": "1",
@@ -282,26 +282,26 @@
     },
     {
       "id": "22A",
-      "name": "ThirdPerson_DynamicADS_Hook",
-      "va": "0x1406e1e0c",
-      "offset": 7213580,
-      "size": 24,
+      "name": "ThirdPerson_DynamicTransition_Hook",
+      "va": "0x14093f357",
+      "offset": 9693015,
+      "size": 9,
       "category": "Third-Person Camera",
-      "desc": "Hooks CPlayer::IsThirdPerson to redirect to native dynamic ADS toggle and minigame evaluator stub",
-      "original_hex": "33c038819c02000074083881bd0100007405b801000000c3",
-      "patched_hex": "e9bf7c890190909090909090909090909090909090909090",
-      "file_offset_hex": "0x6e120c"
+      "desc": "Intercepts CPlayerView::UpdateView to dynamically trigger CPlayer::SetThirdPerson on ADS toggle and minigames",
+      "original_hex": "488b02ff9028020000",
+      "patched_hex": "e974a7630190909090",
+      "file_offset_hex": "0x93e757"
     },
     {
       "id": "22B",
-      "name": "ThirdPerson_DynamicADS_Stub",
+      "name": "ThirdPerson_DynamicTransition_Stub",
       "va": "0x141f79ad0",
       "offset": 33001168,
-      "size": 48,
+      "size": 128,
       "category": "Third-Person Camera",
-      "desc": "Dynamic perspective evaluator: hipfire is OTS 3rd person; right-click toggle ADS switches to 1P iron sights/scopes; hacking minigame runs in 1P",
-      "original_hex": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-      "patched_hex": "4885c9742580b99c02000000741683b9980100000075138b81ec0a00003da4707d3f7206b801000000c331c0c3cccccc",
+      "desc": "Evaluates ADS zoom and minigames, calling native CPlayer::SetThirdPerson to transition character meshes, weapon slots, and firing muzzle helpers",
+      "original_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "patched_hex": "4885d2746f80ba9c02000000745431c083ba980100000075138b8aec0a000081f9a4707d3f7205b8010000003882bd010000742e41504151415241534883ec30f30f7f44242088c24c89e1e83c4879fef30f6f4424204883c430415b415a415941584c89e1498b0424ff9028020000e91c589cfe31c0ebf7cccccccccccccccc",
       "file_offset_hex": "0x1f78ed0"
     },
     {
@@ -339,19 +339,7 @@
       "original_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
       "patched_hex": "f30f104308f30f5c0593000000f30f114308f30f104b0cf30f105310f30f105b14f30f1063180f28c2f30f59c20f28ebf30f59ebf30f58c5f30f58c0f30f102d54000000f30f5ce80f28c1f30f59c20f28d4f30f59d3f30f58c2f30f58c0f30f101d36000000f30f59ebf30f59c3f30f582bf30f584304f30f112bf30f1143048b0389078b43048947048b4308894708e994589cfecccccc0000803f5c8fc23eec51383e",
       "file_offset_hex": "0x1f78f50"
-    },
-    {
-      "id": "25",
-      "name": "ThirdPerson_HolsterCleanup",
-      "va": "0x1406f5183",
-      "offset": 7292291,
-      "size": 6,
-      "category": "Third-Person Camera",
-      "desc": "Forces IAttachment::HideAttachment on body sockets to clean up unowned default holstered weapons on Ethan mesh",
-      "original_hex": "8bfe400f94c7",
-      "patched_hex": "bf0100000090",
-      "file_offset_hex": "0x6f4583"
     }
   ],
-  "patched_sha256": "2fc3e72daeb38f3a062ba133f629f70030337bfb2df147f1fa17e7e781094828"
+  "patched_sha256": "3f30f38bea87d9b50382b03cf3cffb58009ba59bf6e765a0353a1cd9563e52d2"
 }

@@ -2,7 +2,7 @@
 
 [![Platform: PC / Steam](https://img.shields.io/badge/Platform-PC%20%2F%20Steam%20(x86--64)-blue.svg)](#)
 [![Engine: CryEngine 3.8](https://img.shields.io/badge/Engine-CryEngine%203.8-red.svg)](#)
-[![Patches: 29 Applied](https://img.shields.io/badge/Patches-29%20Applied%20%2F%20Verified-brightgreen.svg)](#master-patch-matrix)
+[![Patches: 28 Applied](https://img.shields.io/badge/Patches-28%20Applied%20%2F%20Verified-brightgreen.svg)](#master-patch-matrix)
 [![Durability: Freedom Fighters](https://img.shields.io/badge/Durability-Freedom%20Fighters%20(2003)-orange.svg)](#)
 [![Guide: Installation](https://img.shields.io/badge/Guide-Installation%20(Win%20%2F%20Linux%20%2F%20Deck)-blueviolet.svg)](INSTALLATION.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -60,8 +60,8 @@ flowchart LR
 | **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
 | **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
 | **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
-| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `8a13beba442d7deebc7fbbf442616992` |
-| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `2fc3e72daeb38f3a062ba133f629f70030337bfb2df147f1fa17e7e781094828` |
+| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `966612506e1e4781ecd49daf6a0a77d5` |
+| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `3f30f38bea87d9b50382b03cf3cffb58009ba59bf6e765a0353a1cd9563e52d2` |
 
 ---
 
@@ -121,12 +121,11 @@ All patches follow the **Zero-Data Modification Principle**: `.text` instruction
 | **#20B** | `cc_checkFrequency` | `0x1424aca10` | `0x24aa410` | `00 00 a0 40` (`5.0f`) | `cd cc 4c 3e` (**`0.2f`**) | Target state update rate: 0.2 Hz $\to$ 5.0 Hz |
 | **#20C** | `cc_reSeeTargetTime` | `0x1424aca20` | `0x24aa420` | `00 00 80 3f` (`1.0f`) | `cd cc cc 3d` (**`0.1f`**) | Line-of-sight re-acquisition: 1.0s $\to$ 100ms |
 | **#21** | Companion Aim Spread Neutralization | `0x140706327` | `0x705727` | `e8 34 0c fe ff f3 0f 58 47 08 f3 0f 11 47 08` | `83 67 04 00 83 67 08 00 90 90 90 90 90 90 90` | Clears artificial pitch & yaw miss offsets |
-| **#22A** | `ThirdPerson_DynamicSwitch_Hook` | `0x1406e1e0c` | `0x6e120c` | `33 c0 38 81 9c 02 00 00 ...` (24 bytes) | `e9 bf 7c 89 01 90 ...` (24 bytes) | Redirects `CPlayer::IsThirdPerson` to evaluator stub |
-| **#22B** | `ThirdPerson_F1_RMB_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 128$ (cave in `.text`) | Full F1 toggle & RMB ADS stub (128 bytes) | F1 toggles 1P/3P (1P default); holding RMB switches to 1P iron sights |
+| **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | `48 8b 02 ff 90 28 02 00 00` (9 B) | `e9 74 a7 63 01 90 90 90 90` (9 B) | Intercepts `CPlayerView::UpdateView` to trigger native `SetThirdPerson` on ADS toggle |
+| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 128$ (cave in `.text`) | Full dynamic transition stub (128 bytes) | Synchronizes character meshes, weapon slots (`0x140826318`), and muzzle firing helpers |
 | **#23** | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | `f3 0f 10 1d 86 f3 75 01` | `f3 0f 10 1d 0a fb 94 01` | Tightens camera distance: 3.5m $\to$ 1.85m |
 | **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | `8b 03 89 07 8b 43 04 89 47 04 ...` (16 B) | `e9 e2 a6 63 01 90 ...` (16 bytes) | Hooks view position commit in `CPlayerView::UpdateView` |
 | **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | `00` $\times 164$ (cave in `.text`) | Full SSE basis-vector calibration stub (164 B) | +0.38m lateral right-shoulder offset, -0.18m elevation |
-| **#25** | `ThirdPerson_HolsterCleanup` | `0x1406f5183` | `0x6f4583` | `8b fe 40 0f 94 c7` | `bf 01 00 00 00 90` | Hides unowned default socket weapons on Ethan's mesh |
 
 ---
 
@@ -173,7 +172,7 @@ See [`docs/THIRD_PERSON_CAMERA.md`](docs/THIRD_PERSON_CAMERA.md) for complete ar
 .
 ├── README.md                          # Master project documentation
 ├── LICENSE                            # MIT License
-├── patches.json                       # Machine-readable patch definitions (29 entries)
+├── patches.json                       # Machine-readable patch definitions (28 entries)
 ├── patcher.py                         # Standalone CLI binary patcher
 ├── docs/
 │   ├── REVERSE_ENGINEERING_NOTES.md  # Complete research notes (Phases 1–6)

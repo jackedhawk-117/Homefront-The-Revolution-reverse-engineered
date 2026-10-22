@@ -484,3 +484,66 @@ Instead of polling external OS APIs, the evaluator reads CryEngine's internal ru
   - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
   - **New Patched MD5:** `8a13beba442d7deebc7fbbf442616992`
   - **New Patched SHA256:** `2fc3e72daeb38f3a062ba133f629f70030337bfb2df147f1fa17e7e781094828`
+
+
+---
+
+## Phase 10: Native Dynamic Perspective Transition & Weapon/Impact Synchronization (October 23, 2026)
+
+### 1. Root Cause Analysis: Weapon Invisibility & Shot Abort
+In Phase 9, hooking `CPlayer::IsThirdPerson()` directly at `0x1406e1e0c` dynamically shifted the camera to 1st person when right-clicking to aim. However, in-game testing revealed:
+1. **Weapon 3D Model Not Rendered in ADS:** In CryEngine, weapons maintain independent draw slots:
+   - `eIGS_FirstPerson` (`Slot 0`): First-person weapon model and optics attached to 1st-person arms.
+   - `eIGS_ThirdPerson` (`Slot 1`): Third-person weapon model attached to Ethan's 3rd-person body mesh (`Bip01 R Hand`).
+   Simply returning `0` from `IsThirdPerson()` did not execute the engine's weapon geometry transition (`0x140826318`), leaving `Slot 0` uninitialized and invisible.
+2. **Invisible Bullet Impacts on Walls:** When firing in first-person mode (`0x140411da0`), the engine verifies `IsThirdPerson() == 0` and queries the weapon attachment in character slot 0 (`IActor::GetCharacter(0)` at `0x140411f8c`). Because slot 0 lacked an active weapon attachment, the attachment pointer returned `NULL` (`0x140411fc4`), jumping to `0x140412995` which aborted the shot. Zero projectiles or raycasts were spawned.
+3. **Destructive Holster Cleanup (Patch #25):** The previous patch at `0x1406f5183` forced `edi = 1`, causing `IAttachment::HideAttachment(1)` to hide all attachments across Ethan's entire character, including the weapon in his hands.
+
+### 2. The Native Engine Solution: `CPlayer::SetThirdPerson` (`0x14070e35c`)
+CryEngine contains a native, fully synchronized method to transition between first and third person:
+```assembly
+; CPlayer::SetThirdPerson(CPlayer* this, bool bThirdPerson) at 0x14070e35c:
+0x14070e35c: mov [rsp + 8], rbx
+0x14070e361: push rdi
+0x14070e362: sub rsp, 0x20
+0x14070e366: mov rdi, rcx
+0x14070e369: cmp byte ptr [rcx + 0x1bd], dl   ; Check if [CPlayer + 0x1bd] == dl
+0x14070e36f: je 0x14070e3b5                  ; If already in target state, return immediately!
+0x14070e371: mov byte ptr [rcx + 0x1bd], dl  ; Update internal state flag
+0x14070e377: call 0x140704fd8                 ; Call engine transition dispatcher!
+...
+0x14070e3bf: ret
+```
+
+When invoked:
+- It calls `0x140704fd8` $\to$ `0x140704ee0`.
+- It executes `0x1406f5068` to update character meshes (1P arms vs 3P body).
+- It calls `0x140826318` on the equipped weapon (`CWeapon*`):
+  - In ADS (`dl = 1`): calls `[pWeapon + 0x438]`, activating `Slot 0` (1P weapon, iron sights, reflex sights, sniper scopes).
+  - In Hipfire (`dl = 0`): calls `[pWeapon + 0x440]`, activating `Slot 1` (3P weapon attached to Ethan's hands).
+- It updates firing muzzle helpers to `muzzle_flash_fp`, ensuring firing raycasts originate from the iron sightline and register impacts on targeted surfaces.
+
+### 3. Implementation Details
+1. **Restored Vanilla Integrity:** `CPlayer::IsThirdPerson()` (`0x1406e1e0c`) and Attachment Handling (`0x1406f5183`) are restored to clean vanilla.
+2. **Dynamic Transition Hook (`0x14093f357`, 9 Bytes):** Intercepts `CPlayerView::UpdateView` to jump to `ThirdPerson_DynamicTransition_Stub`.
+3. **Dynamic Transition Stub (`0x141f79ad0`, 128 Bytes):**
+   - Compares desired state (0 if `[rdx + 0x198] != 0` or `[rdx + 0xaec] < 0.99f`, else 1) against `[rdx + 0x1bd]`.
+   - On state mismatch, safely preserves volatile registers and calls `CPlayer::SetThirdPerson(pPlayer, desired)` (`0x14070e35c`).
+   - Calls vanilla `CPlayer::IsThirdPerson()` and returns cleanly to `0x14093f360`.
+
+### 4. Active Binary Patch Table (28 Patches Total)
+
+| Patch # | Parameter / Component | Instruction VA | File Offset | Size | Original Bytes | Patched Bytes | Purpose |
+| :---: | :--- | :---: | :---: | :---: | :--- | :--- | :--- |
+| **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | 9 B | `488b02ff9028020000` | `e974a7630190909090` | Intercepts `UpdateView` to trigger native `SetThirdPerson` on ADS toggle and minigames |
+| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | `00` $\times 128$ | `4885d2746f80ba9c02000000...` | Transitions character meshes, weapon slots (`0x140826318`), and firing helpers |
+| **#23** | `cl_tpvDist` | `0x1408a481a` | `0x8a3c1a` | 8 B | `f30f101d86f37501` | `f30f101d0afb9401` | Tightens camera distance from 3.5m to 1.85m action perspective |
+| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e9e2a6630190...` | Intercepts view commit in `CPlayerView::UpdateView` |
+| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | 164 B | `00` $\times 164$ | `f30f104308f3...` | Applies $+0.38\text{m}$ Right-vector offset and $-0.18\text{m}$ elevation (*Gears of War* OTS) |
+
+### 5. Status & Deployment
+- **Status:** **APPLIED & DEPLOYED TO STEAM**
+  - Working binary: `/home/jackedhawk117/rework/Homefront2_Release.exe`
+  - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
+  - **New Patched MD5:** `966612506e1e4781ecd49daf6a0a77d5`
+  - **New Patched SHA256:** `3f30f38bea87d9b50382b03cf3cffb58009ba59bf6e765a0353a1cd9563e52d2`

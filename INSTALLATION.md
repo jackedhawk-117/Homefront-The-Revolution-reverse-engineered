@@ -171,7 +171,7 @@ In Steam: Right-click **Homefront: The Revolution** $\to$ **Properties** $\to$ *
 **A:** **No.** *Homefront: The Revolution* single-player campaign has no anti-cheat software (Easy Anti-Cheat or BattlEye are not used in campaign mode). This mod is strictly for single-player offline campaign play.
 
 #### Q: What happens if Steam updates the game?
-**A:** If Steam downloads an update or verifies game files, it will simply replace `Homefront2_Release.exe` with vanilla. You just re-run `python3 patcher.py --apply` to re-enable all 29 patches.
+**A:** If Steam downloads an update or verifies game files, it will simply replace `Homefront2_Release.exe` with vanilla. You just re-run `python3 patcher.py --apply` to re-enable all 28 patches.
 
 #### Q: Why does the patcher report a byte mismatch?
 **A:** Make sure your executable is the latest 64-bit Steam Release version (`Homefront2_Release.exe`, 41,827,328 bytes, MD5: `0326ea202fcd7ceb3760d14bc8d07f63`). If your game is already patched, `python3 patcher.py --verify` will show which patches are active.
