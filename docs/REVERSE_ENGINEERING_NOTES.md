@@ -434,3 +434,20 @@ Following in-game combat testing with a 12-member Resistance squad, three critic
   - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
   - **New Patched MD5:** `c3402bd8800ec626ee65abc3ae87032c`
   - **New Patched SHA256:** `d970b57684e83bb4446b419783e47fc37a87585625015d25319ea1e60ef10ea5`
+
+---
+
+## Phase 8: F1 Perspective Hotkey Toggle & Right-Click Instant ADS Snap (October 22, 2026)
+
+### 1. Root Cause Analysis of Previous ADS Limitation
+- In Phase 7, querying weapon zoom mode (`IZoomMode::IsZoomed`) created a state dependency: `CWeapon` checks `CPlayer::IsThirdPerson()` before initiating the zoom transition. Because `IsThirdPerson()` returned 1, `CWeapon` bypassed `StartZoom()`, preventing `IsZoomed()` from ever returning true.
+- *Solution:* Direct hardware input evaluation using `USER32.dll!GetAsyncKeyState` (imported in IAT at `0x141f7e240`).
+  1. **F1 Hotkey:** Edge-triggered latch flips `g_thirdPersonEnabled` between 0 and 1. By default, the game starts in 1st person (`0`).
+  2. **Right Mouse Button (`VK_RBUTTON` = 0x02):** While in 3rd person, holding Right-Click instantly reports `IsThirdPerson() == 0`, allowing `CWeapon` to execute full vanilla iron sights / scope aiming with zero parallax. Releasing RMB instantly snaps back to OTS 3rd person.
+
+### 2. Status & Deployment
+- **Status:** **APPLIED & DEPLOYED TO STEAM**
+  - Working binary: `/home/jackedhawk117/rework/Homefront2_Release.exe`
+  - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
+  - **New Patched MD5:** `a22285289209320e54c51cdff2b6d656`
+  - **New Patched SHA256:** `d5b24405a61f50a2078e391e4646f567fac3ffb3a74038d3f6abad568b4c3021`

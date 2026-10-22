@@ -45,7 +45,7 @@ flowchart LR
 - **Freedom Fighters Combat Durability (Patch #19):** Grants followers 75% damage resistance (4x effective HP), allowing fighters to survive 12–15 assault rifle rounds rather than dropping instantly.
 - **Zero-Hesitation Combat Reaction (Patch #20):** Eliminates the artificial 2-second staring delay when AI encounters enemies outside cover; units engage and open fire within 150ms.
 - **Precision Guerrilla Marksmanship (Patch #21):** Neutralizes the game's artificial companion aim penalty; followers fire with true center-mass accuracy while retaining natural weapon physics and animation variation.
-- **Over-The-Shoulder Third-Person Camera & Dynamic Aiming (Patches #22–#25):** Full 3D Ethan Brady character rendering with a cinematic *Gears of War* over-the-shoulder perspective (+0.38m lateral right-shoulder offset, -0.18m elevation, 1.85m distance). Holding Right-Click dynamically snaps into 1st-person iron sights / scope view (zero parallax, laser precision), while hacking minigames and interactive puzzles automatically switch to 1st person. Default unowned socket weapons are cleanly suppressed.
+- **Over-The-Shoulder Third-Person Camera & Dynamic Aiming (Patches #22–#25):** 1st-person by default. Press **F1** at any time to toggle between 1st-person and a cinematic *Gears of War* over-the-shoulder 3rd-person perspective (+0.38m lateral right-shoulder offset, -0.18m elevation, 1.85m distance). While in 3rd-person, hip firing remains in 3rd-person; holding Right-Click dynamically snaps into 1st-person iron sights / scope aiming (zero parallax, laser precision), snapping back to OTS 3rd-person on release. Default unowned socket weapons on Ethan's mesh are cleanly suppressed.
 - **Urban Navigation & Choke Point Queueing (Patches #14 & #15):** Calibrates inter-agent personal space to 0.25m, allowing all 12 followers to stream through narrow 1.2m outpost doors without jamming.
 - **Tactical Cover Perimeter (Patches #11, #12 & #13):** Expands formation radius from 2m/3m to ~22m so 12 squad members fan out into distinct cover positions instead of collapsing into a clump.
 - **Target Memory & Rooftop Acquisition (Patches #17 & #18):** Extends sight-loss memory from 2s to 30s and enables infinite elevation sight, preventing the squad from ignoring rooftop snipers.
@@ -60,8 +60,8 @@ flowchart LR
 | **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
 | **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
 | **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
-| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `c3402bd8800ec626ee65abc3ae87032c` |
-| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `d970b57684e83bb4446b419783e47fc37a87585625015d25319ea1e60ef10ea5` |
+| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `a22285289209320e54c51cdff2b6d656` |
+| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `d5b24405a61f50a2078e391e4646f567fac3ffb3a74038d3f6abad568b4c3021` |
 
 ---
 
@@ -122,10 +122,10 @@ All patches follow the **Zero-Data Modification Principle**: `.text` instruction
 | **#20C** | `cc_reSeeTargetTime` | `0x1424aca20` | `0x24aa420` | `00 00 80 3f` (`1.0f`) | `cd cc cc 3d` (**`0.1f`**) | Line-of-sight re-acquisition: 1.0s $\to$ 100ms |
 | **#21** | Companion Aim Spread Neutralization | `0x140706327` | `0x705727` | `e8 34 0c fe ff f3 0f 58 47 08 f3 0f 11 47 08` | `83 67 04 00 83 67 08 00 90 90 90 90 90 90 90` | Clears artificial pitch & yaw miss offsets |
 | **#22A** | `ThirdPerson_DynamicSwitch_Hook` | `0x1406e1e0c` | `0x6e120c` | `33 c0 38 81 9c 02 00 00 ...` (24 bytes) | `e9 bf 7c 89 01 90 ...` (24 bytes) | Redirects `CPlayer::IsThirdPerson` to evaluator stub |
-| **#22B** | `ThirdPerson_DynamicSwitch_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 48$ (cave in `.text`) | Full dynamic evaluator stub (48 bytes) | Returns 1st-person for ADS/hacking, 3rd-person for traversal |
+| **#22B** | `ThirdPerson_F1_RMB_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 128$ (cave in `.text`) | Full F1 toggle & RMB ADS stub (128 bytes) | F1 toggles 1P/3P (1P default); holding RMB switches to 1P iron sights |
 | **#23** | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | `f3 0f 10 1d 86 f3 75 01` | `f3 0f 10 1d 0a fb 94 01` | Tightens camera distance: 3.5m $\to$ 1.85m |
-| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | `8b 03 89 07 8b 43 04 89 47 04 ...` (16 B) | `e9 92 a6 63 01 90 ...` (16 bytes) | Hooks view position commit in `CPlayerView::UpdateView` |
-| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b00` | `0x1f78f00` | `00` $\times 172$ (cave in `.text`) | Full SSE basis-vector calibration stub (172 B) | +0.38m lateral right-shoulder offset, -0.18m elevation |
+| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | `8b 03 89 07 8b 43 04 89 47 04 ...` (16 B) | `e9 e2 a6 63 01 90 ...` (16 bytes) | Hooks view position commit in `CPlayerView::UpdateView` |
+| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | `00` $\times 164$ (cave in `.text`) | Full SSE basis-vector calibration stub (164 B) | +0.38m lateral right-shoulder offset, -0.18m elevation |
 | **#25** | `ThirdPerson_HolsterCleanup` | `0x1406f5183` | `0x6f4583` | `8b fe 40 0f 94 c7` | `bf 01 00 00 00 90` | Hides unowned default socket weapons on Ethan's mesh |
 
 ---
