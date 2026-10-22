@@ -22,8 +22,8 @@ PATCH_FILE = os.path.join(SCRIPT_DIR, "patches.json")
 
 VANILLA_MD5 = "0326ea202fcd7ceb3760d14bc8d07f63"
 VANILLA_SHA256 = "c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c"
-FULL_PATCHED_MD5 = "96f593ff3c734855066daced924e6521"
-FULL_PATCHED_SHA256 = "f9766b5340eb5edf84e3441c6b51be86e2316156db1137d07176a294867d074e"
+FULL_PATCHED_MD5 = "30404f43336cbbd79f0de8ebfedf69c8"
+FULL_PATCHED_SHA256 = "8ce870faab2dc63cd66e14a5e35f6b716729d3c82a2f05df5dc16d20e893a6a0"
 
 
 def compute_hashes(file_path):
@@ -58,7 +58,7 @@ def verify_target(target_path, patches):
     if md5 == VANILLA_MD5:
         print("[+] Binary Status: Clean Vanilla (Unmodified)")
     elif md5 == FULL_PATCHED_MD5:
-        print("[+] Binary Status: Fully Patched (All 21 Patches Active)")
+        print(f"[+] Binary Status: Fully Patched (All {len(patches)} Patches Active)")
     else:
         print("[!] Binary Status: Custom / Partially Patched")
 

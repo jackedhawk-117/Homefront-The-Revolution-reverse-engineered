@@ -1,8 +1,8 @@
 {
   "target_binary": "Homefront2_Release.exe",
   "vanilla_md5": "0326ea202fcd7ceb3760d14bc8d07f63",
-  "patched_md5": "96f593ff3c734855066daced924e6521",
-  "total_patches": 23,
+  "patched_md5": "30404f43336cbbd79f0de8ebfedf69c8",
+  "total_patches": 25,
   "patches": [
     {
       "id": "1",
@@ -279,6 +279,30 @@
       "original_hex": "e8340cfefff30f584708f30f114708",
       "patched_hex": "836704008367080090909090909090",
       "file_offset_hex": "0x705727"
+    },
+    {
+      "id": "22",
+      "name": "ThirdPerson_Activation",
+      "va": "0x1406e1e1c",
+      "offset": 7213596,
+      "size": 2,
+      "category": "Third-Person Camera",
+      "desc": "Enables full 3D player character model rendering and third-person camera system for local client",
+      "original_hex": "7405",
+      "patched_hex": "9090",
+      "file_offset_hex": "0x6e121c"
+    },
+    {
+      "id": "23",
+      "name": "ThirdPerson_CameraDistance",
+      "va": "0x1408a481a",
+      "offset": 9059354,
+      "size": 8,
+      "category": "Third-Person Camera",
+      "desc": "Tightens default third-person camera distance from 3.5m to 1.85m action perspective",
+      "original_hex": "f30f101d86f37501",
+      "patched_hex": "f30f101d0afb9401",
+      "file_offset_hex": "0x8a3c1a"
     }
   ]
 }

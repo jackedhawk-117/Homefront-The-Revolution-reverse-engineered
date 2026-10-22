@@ -2,7 +2,7 @@
 
 [![Platform: PC / Steam](https://img.shields.io/badge/Platform-PC%20%2F%20Steam%20(x86--64)-blue.svg)](#)
 [![Engine: CryEngine 3.8](https://img.shields.io/badge/Engine-CryEngine%203.8-red.svg)](#)
-[![Patches: 21 Applied](https://img.shields.io/badge/Patches-21%20Applied%20%2F%20Verified-brightgreen.svg)](#master-patch-matrix)
+[![Patches: 25 Applied](https://img.shields.io/badge/Patches-25%20Applied%20%2F%20Verified-brightgreen.svg)](#master-patch-matrix)
 [![Durability: Freedom Fighters](https://img.shields.io/badge/Durability-Freedom%20Fighters%20(2003)-orange.svg)](#)
 [![Guide: Installation](https://img.shields.io/badge/Guide-Installation%20(Win%20%2F%20Linux%20%2F%20Deck)-blueviolet.svg)](INSTALLATION.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -59,8 +59,8 @@ flowchart LR
 | **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
 | **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
 | **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
-| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `96f593ff3c734855066daced924e6521` |
-| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `f9766b5340eb5edf84e3441c6b51be86e2316156db1137d07176a294867d074e` |
+| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `30404f43336cbbd79f0de8ebfedf69c8` |
+| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `8ce870faab2dc63cd66e14a5e35f6b716729d3c82a2f05df5dc16d20e893a6a0` |
 
 ---
 
@@ -120,6 +120,8 @@ All patches follow the **Zero-Data Modification Principle**: `.text` instruction
 | **#20B** | `cc_checkFrequency` | `0x1424aca10` | `0x24aa410` | `00 00 a0 40` (`5.0f`) | `cd cc 4c 3e` (**`0.2f`**) | Target state update rate: 0.2 Hz $\to$ 5.0 Hz |
 | **#20C** | `cc_reSeeTargetTime` | `0x1424aca20` | `0x24aa420` | `00 00 80 3f` (`1.0f`) | `cd cc cc 3d` (**`0.1f`**) | Line-of-sight re-acquisition: 1.0s $\to$ 100ms |
 | **#21** | Companion Aim Spread Neutralization | `0x140706327` | `0x705727` | `e8 34 0c fe ff f3 0f 58 47 08 f3 0f 11 47 08` | `83 67 04 00 83 67 08 00 90 90 90 90 90 90 90` | Clears artificial pitch & yaw miss offsets |
+| **#22** | `ThirdPerson_Activation` | `0x1406e1e1c` | `0x6e121c` | `74 05` | `90 90` | Enables full 3D Ethan Brady model & third-person view |
+| **#23** | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | `f3 0f 10 1d 86 f3 75 01` | `f3 0f 10 1d 0a fb 94 01` | Tightens default third-person camera: 3.5m $\to$ 1.85m |
 
 ---
 
@@ -147,14 +149,15 @@ For detailed reverse engineering notes, decompilations, and mathematical formula
 
 ---
 
-## Third-Person Over-the-Shoulder (OTS) Camera Feasibility
+## Third-Person Over-the-Shoulder (OTS) Camera System
 
-CryEngine 3.8 in *Homefront: The Revolution* already contains complete third-person support (used in Resistance Mode multiplayer and vehicles):
-- `SPlayerStats::isThirdPerson` exists natively at offset `+0x15D`.
-- `CActor::SetThirdPerson` is implemented at `0x140dc9c00`.
-- Full third-person locomotion, sprint, crouch, cover, and shoot animations already exist for player character Ethan Brady.
+CryEngine 3.8 in *Homefront: The Revolution* natively incorporates complete third-person camera and character mesh pipelines:
+- `CPlayer::IsThirdPerson()` (`0x1406e1e0c`): Client check unlocked to permanently return `1` for the local player (Patch #22).
+- `ProcessThirdPersonView()` (`0x140937478`): Native camera system with collision raycast occlusion checks (`0x1406e6ff8`).
+- `cl_tpvDist` (`0x1408a481a`): Default camera distance tightened from `3.5m` to `1.85m` (Patch #23).
+- Full third-person locomotion, sprint, crouch, cover, and shoot animations execute on player character Ethan Brady with detached 1P arm suppression.
 
-See [`docs/THIRD_PERSON_FEASIBILITY.md`](docs/THIRD_PERSON_FEASIBILITY.md) for the technical implementation roadmap to introduce *Gears of War* style over-the-shoulder camera mechanics.
+See [`docs/THIRD_PERSON_CAMERA.md`](docs/THIRD_PERSON_CAMERA.md) for complete architectural analysis and assembly diffs.
 
 ---
 
@@ -164,12 +167,13 @@ See [`docs/THIRD_PERSON_FEASIBILITY.md`](docs/THIRD_PERSON_FEASIBILITY.md) for t
 .
 ├── README.md                          # Master project documentation
 ├── LICENSE                            # MIT License
-├── patches.json                       # Machine-readable patch definitions (23 entries)
+├── patches.json                       # Machine-readable patch definitions (25 entries)
 ├── patcher.py                         # Standalone CLI binary patcher
 ├── docs/
 │   ├── REVERSE_ENGINEERING_NOTES.md  # Complete research notes (Phases 1–6)
 │   ├── COMBAT_AI_ARCHITECTURE.md     # CryEngine AI & combat subsystem analysis
-│   └── THIRD_PERSON_FEASIBILITY.md    # Gears of War OTS 3rd-person spec
+│   ├── THIRD_PERSON_FEASIBILITY.md    # Gears of War OTS 3rd-person spec
+│   └── THIRD_PERSON_CAMERA.md         # Third-person architecture & patch details
 └── include/
     ├── DTP.h                          # DefendThePlayer structures & formation math
     ├── CoordinatedCombat.h            # Combat group, target memory, timers
