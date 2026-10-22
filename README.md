@@ -2,8 +2,9 @@
 
 [![Platform: PC / Steam](https://img.shields.io/badge/Platform-PC%20%2F%20Steam%20(x86--64)-blue.svg)](#)
 [![Engine: CryEngine 3.8](https://img.shields.io/badge/Engine-CryEngine%203.8-red.svg)](#)
-[![Patches: 21 Applied](https://img.shields.io/badge/Patches-21%20Applied%20%2F%20Verified-brightgreen.svg)](#patch-matrix)
+[![Patches: 21 Applied](https://img.shields.io/badge/Patches-21%20Applied%20%2F%20Verified-brightgreen.svg)](#master-patch-matrix)
 [![Durability: Freedom Fighters](https://img.shields.io/badge/Durability-Freedom%20Fighters%20(2003)-orange.svg)](#)
+[![Guide: Installation](https://img.shields.io/badge/Guide-Installation%20(Win%20%2F%20Linux%20%2F%20Deck)-blueviolet.svg)](INSTALLATION.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 Reverse engineering research, documentation, reconstructed C++ headers, and an automated binary patcher for *Homefront: The Revolution* (CryEngine 3.8 x86-64).
@@ -17,13 +18,14 @@ Inspired by IO Interactive's classic ***Freedom Fighters* (2003)**, this project
 ## Table of Contents
 1. [Key Features & Gameplay Transformation](#key-features--gameplay-transformation)
 2. [Target Binary Baseline](#target-binary-baseline)
-3. [Quick Start & Patcher Usage](#quick-start--patcher-usage)
-4. [Master Patch Matrix](#master-patch-matrix)
-5. [In-Game Combat Verification](#in-game-combat-verification)
-6. [Architecture & Reverse Engineering Findings](#architecture--reverse-engineering-findings)
-7. [Third-Person Over-the-Shoulder (OTS) Camera Feasibility](#third-person-over-the-shoulder-ots-camera-feasibility)
-8. [Repository Structure](#repository-structure)
-9. [License](#license)
+3. [Installation Guide (Windows / Linux / Steam Deck)](INSTALLATION.md)
+4. [Quick Start & Patcher Usage](#quick-start--patcher-usage)
+5. [Master Patch Matrix](#master-patch-matrix)
+6. [In-Game Combat Verification](#in-game-combat-verification)
+7. [Architecture & Reverse Engineering Findings](#architecture--reverse-engineering-findings)
+8. [Third-Person Over-the-Shoulder (OTS) Camera Feasibility](#third-person-over-the-shoulder-ots-camera-feasibility)
+9. [Repository Structure](#repository-structure)
+10. [License](#license)
 
 ---
 
