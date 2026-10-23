@@ -647,26 +647,31 @@ Following the deployment of Phase 11 (`b18da28dc96c31fc73f6f4807a27b251`), the g
    - Furthermore, `g_thirdPersonEnabled` was placed at `0x144000000`, 27 MB beyond `.data`'s raw file data.
 
 ### 2. Immediate Restoration & Active Status
-- Executable binaries at both `/home/jackedhawk117/rework/Homefront2_Release.exe` and Steam `Bin64/Homefront2_Release.exe` were restored and then upgraded to Phase 12.
-- **Current Verified Hashes (Phase 12):**
-  - **MD5:** `3612b20343a57664751364d03923b252`
-  - **SHA256:** `f07ae9e0a1a3c9785fbc232eac655fdc34f3a4325b063d10a80dab3f20eacae1`
+- Executable binaries at both `/home/jackedhawk117/rework/Homefront2_Release.exe` and Steam `Bin64/Homefront2_Release.exe` were restored and upgraded to the verified crash-free build.
+- **Current Verified Hashes (Phase 12 Stack-Aligned):**
+  - **MD5:** `0f382b402129aa207a4470d1f8d30756`
+  - **SHA256:** `fda44730ced4c4ed90aeba0d02cda725c66891caac9587f0d840c4c28d8b5a32`
 - **Patches Active:** 28/28 verified (Patches #1–#21, #22A, #22B, #23, #24A, #24B).
 - Character mesh transitions, 1P weapon rendering in ADS, wall bullet impacts, and F1 hotkey toggle are fully verified.
 
 ---
 
-## Phase 12: Safe Main-Thread F1 Hotkey Toggle in CPlayerView::UpdateView (October 23, 2026)
+## Phase 12: Safe Main-Thread F1 Hotkey Toggle & x86-64 Stack Alignment Fix (October 23, 2026)
 
 ### 1. Architectural Solution
 Instead of hooking `WndProc` (which fires thousands of OS messages during loading screens and level loads), the F1 keyboard poll was moved directly into `ThirdPerson_DynamicTransition_Stub` (`0x141f79ad0`, Patch #22B) in `.text`:
 1. **Isolated to Active Gameplay:** `CPlayerView::UpdateView` is only invoked when rendering active 3D player gameplay, never during loading screens or main menu.
 2. **Crash-Free Win32 Polling:** Invokes `USER32.dll!GetAsyncKeyState(VK_F1 = 0x70)` via existing IAT slot `0x141f7e240`.
-3. **Leading-Edge Toggle:** Bit 15 (`0x8000`) of `GetAsyncKeyState` is edge-detected using an atomic `xchg` with `g_bF1PrevState` at `0x1425b1d21` in raw `.data`.
-4. **Zero Overlap:** Compacted down to 125 bytes + 3 bytes padding (128 bytes total), fitting perfectly within Patch #22B's original `.text` allocation without encroaching on Patch #24B at `0x141f79b50`.
-5. **1st-Person Default:** Starts in 100% vanilla 1st-person (`g_bThirdPersonMode = 0` at `0x1425b1d20`). F1 toggles 3rd-person OTS on/off dynamically. In 3rd-person mode, Right-Click ADS toggle still snaps into 1st-person iron sights / scope aiming with native weapon 3D models and bullet impacts.
+3. **Leading-Edge Toggle:** Bit 15 (`0x8000`) of `GetAsyncKeyState` is edge-detected using `test ah, 0x80; setne al` and an `xchg` with `g_bF1PrevState` at `0x1425b1d21` in raw `.data`.
+4. **16-Byte Stack Alignment (`sub rsp, 0x20`):**
+   - The hook at `0x14093f357` is reached via `jmp 0x141f79ad0`, where `rsp % 16 == 0`.
+   - Microsoft x64 calling convention requires `rsp % 16 == 0` prior to any `call`.
+   - The initial draft used `sub rsp, 0x28` (40 bytes), misaligning `rsp` by 8 bytes (`rsp % 16 == 8`). When `CPlayer::SetThirdPerson` called downstream subroutines (`0x140704fd8`), an aligned vector store (`0x140705053: movaps xmmword ptr [rax - 0x18], xmm6`) caused a General Protection Fault (`#GP` / `0xC0000005`), crashing the game the moment F1 was pressed.
+   - Adjusting the allocation to `sub rsp, 0x20` (32 bytes = 4 quadwords shadow space) guarantees `rsp % 16 == 0` before both `GetAsyncKeyState` and `SetThirdPerson`. Callee entry receives `rsp % 16 == 8` and all nested calls and SIMD `movaps` instructions execute with 100% proper alignment.
+5. **Zero Overlap:** Fits in exactly 128 bytes (`0x80`), perfectly filling `0x141f79ad0` to `0x141f79b4f` without touching Patch #24B at `0x141f79b50`.
+6. **1st-Person Default:** Starts in 100% vanilla 1st-person (`g_bThirdPersonMode = 0` at `0x1425b1d20`). F1 toggles 3rd-person OTS on/off dynamically. In 3rd-person mode, Right-Click ADS toggle still snaps into 1st-person iron sights / scope aiming with native weapon 3D models and bullet impacts.
 
 ### 2. Verification Hashes
-- **MD5:** `3612b20343a57664751364d03923b252`
-- **SHA256:** `f07ae9e0a1a3c9785fbc232eac655fdc34f3a4325b063d10a80dab3f20eacae1`
+- **MD5:** `0f382b402129aa207a4470d1f8d30756`
+- **SHA256:** `fda44730ced4c4ed90aeba0d02cda725c66891caac9587f0d840c4c28d8b5a32`
 
