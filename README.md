@@ -60,8 +60,8 @@ flowchart LR
 | **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
 | **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
 | **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
-| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `b536426f8ae27559e2eb861596111e47` |
-| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `96e4771ed73827114f2db97a9f109ab93ca50aa20147e43e3c5f61eae067a0f2` |
+| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `ff60ce72d070935e4a068d812e2fb6df` |
+| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `722c4af6c0662c76ed437a0ca932e0626ee669a3efa979d91aa9c911b76cf31f` |
 
 ---
 
@@ -126,8 +126,8 @@ All patches follow the **Zero-Data Modification Principle**: `.text` instruction
 | **#23** | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | `f3 0f 10 1d 86 f3 75 01` | `f3 0f 10 1d 0a fb 94 01` | Tightens camera distance: 3.5m $\to$ 1.85m |
 | **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | `8b 03 89 07 8b 43 04 89 47 04 ...` (16 B) | `e9 e2 a6 63 01 90 ...` (16 bytes) | Hooks view position commit in `CPlayerView::UpdateView` |
 | **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | `00` $\times 164$ (cave in `.text`) | Full SSE basis-vector calibration stub (164 B) | +0.38m lateral right-shoulder offset, -0.18m elevation |
-| **#25A** | `ThirdPerson_MsgPump_Hook` | `0x1402472ca` | `0x2466ca` | `48 8d 4c 24 30` (5 B) | `e9 01 28 d3 01` (5 B) | Hooks main CryEngine Win32 message pump right after `PeekMessageW` for F1/F3 hotkey |
-| **#25B** | `ThirdPerson_MsgPump_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 128$ (cave in `.text`) | Atomic F1/F3 hotkey toggle stub (128 B) | Toggles `g_bThirdPersonMode` at `0x1425b1d40` on non-repeating `WM_KEYDOWN` (`VK_F1` or `VK_F3`) |
+| **#25A** | `ThirdPerson_Keyboard_Hook` | `0x140f99220` | `0xf98620` | `48 89 5c 24 18 48 89 6c 24 20 56 48 83 ec 60` (15 B) | `e9 ab 08 fe 00 90 90 90 90 90 90 90 90 90 90` (15 B) | Hooks `CKeyboard::ProcessKey` to intercept DirectInput F1/F2/F3 keypresses |
+| **#25B** | `ThirdPerson_Keyboard_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 128$ (cave in `.text`) | DirectInput key event stub (128 B) | Toggles `g_bThirdPersonMode` at `0x1425b1d40` on physical keypress (`DIK_F1`/`F2`/`F3`) |
 
 ---
 

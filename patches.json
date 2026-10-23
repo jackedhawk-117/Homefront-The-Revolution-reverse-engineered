@@ -1,7 +1,7 @@
 {
   "target_binary": "Homefront2_Release.exe",
   "vanilla_md5": "0326ea202fcd7ceb3760d14bc8d07f63",
-  "patched_md5": "b536426f8ae27559e2eb861596111e47",
+  "patched_md5": "ff60ce72d070935e4a068d812e2fb6df",
   "total_patches": 30,
   "patches": [
     {
@@ -342,28 +342,28 @@
     },
     {
       "id": "25A",
-      "name": "ThirdPerson_MsgPump_Hook",
-      "va": "0x1402472ca",
-      "offset": 2385610,
-      "size": 5,
+      "name": "ThirdPerson_Keyboard_Hook",
+      "va": "0x140f99220",
+      "offset": 16352800,
+      "size": 15,
       "category": "Third-Person Camera",
-      "desc": "Hooks main CryEngine Win32 message pump right after PeekMessageW to detect VK_F1 / VK_F3 hotkey toggle",
-      "original_hex": "488d4c2430",
-      "patched_hex": "e90128d301",
-      "file_offset_hex": "0x2466ca"
+      "desc": "Hooks CKeyboard::ProcessKey to intercept physical DirectInput key events for F1/F2/F3 hotkey toggle",
+      "original_hex": "48895c241848896c2420564883ec60",
+      "patched_hex": "e9ab08fe0090909090909090909090",
+      "file_offset_hex": "0xf98620"
     },
     {
       "id": "25B",
-      "name": "ThirdPerson_MsgPump_Stub",
+      "name": "ThirdPerson_Keyboard_Stub",
       "va": "0x141f79ad0",
       "offset": 33001168,
       "size": 128,
       "category": "Third-Person Camera",
-      "desc": "Atomic F1/F3 hotkey toggle stub in .text: toggles g_bThirdPersonMode at 0x1425b1d40 on non-repeating WM_KEYDOWN",
+      "desc": "DirectInput key event stub in .text: toggles g_bThirdPersonMode at 0x1425b1d40 when F1, F2, or F3 is pressed",
       "original_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-      "patched_hex": "817c243800010000751c837c2440707407837c244072750ef644244b40750780354a82630001488d4c2430e9cfd72cfecccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "patched_hex": "4584c0741683fa3b740a83fa3c740583fa3d75078035558263000148895c241848896c2420564883ec60e930f701ffcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "file_offset_hex": "0x1f78ed0"
     }
   ],
-  "patched_sha256": "96e4771ed73827114f2db97a9f109ab93ca50aa20147e43e3c5f61eae067a0f2"
+  "patched_sha256": "722c4af6c0662c76ed437a0ca932e0626ee669a3efa979d91aa9c911b76cf31f"
 }

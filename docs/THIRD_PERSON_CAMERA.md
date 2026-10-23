@@ -1,7 +1,7 @@
 # Third-Person Over-the-Shoulder Camera & Native Dynamic Aiming System
 
 ## Overview
-This document details the reverse engineering, disassembly, and implementation of the Over-The-Shoulder (OTS) Third-Person Camera, Win32 Message Pump Hotkey Toggle, and unified dynamic perspective transitions in *Homefront: The Revolution* (CryEngine 3.8 x86-64 PE).
+This document details the reverse engineering, disassembly, and implementation of the Over-The-Shoulder (OTS) Third-Person Camera, DirectInput Keyboard Hotkey Toggle, and unified dynamic perspective transitions in *Homefront: The Revolution* (CryEngine 3.8 x86-64 PE).
 
 ---
 
@@ -9,24 +9,24 @@ This document details the reverse engineering, disassembly, and implementation o
 
 ```mermaid
 flowchart TD
-    subgraph Win32 Message Pump Pipeline [CryEngine Main Thread 0x1402472ca]
-        W1["CryEngine Main Loop: PeekMessageW"] --> W2["MsgPump Hook (0x1402472ca)"]
-        W2 --> W3["MsgPump Stub (0x141f79ad0)"]
-        W3 --> W4{"uMsg == WM_KEYDOWN (0x100)?"}
-        W4 -->|No| W8["Execute Replaced lea rcx, [rsp+0x30]"]
-        W4 -->|Yes| W5{"wParam == VK_F1 (0x70)<br>or VK_F3 (0x72)?"}
-        W5 -->|No| W8
-        W5 -->|Yes| W6{"lParam & 0x40000000?<br>(Auto-repeat filter)"}
-        W6 -->|Yes: Key Held| W8
-        W6 -->|No: Fresh Keypress| W7["xor byte ptr [0x1425b1d40], 1<br>(Toggle g_bThirdPersonMode)"]
-        W7 --> W8
-        W8 --> W9["Resume Loop -> TranslateMessage -> DispatchMessageW"]
+    subgraph DirectInput Keyboard Pipeline [CKeyboard::ProcessKey 0x140f99220]
+        K1["Physical Key Press: F1 / F2 / F3"] --> K2["DirectInput8 GetDeviceData"]
+        K2 --> K3["CKeyboard::Update -> ProcessKey (0x140f99220)"]
+        K3 --> K4["Keyboard Hook (Patch #25A at 0x140f99220)"]
+        K4 --> K5["Keyboard Stub (Patch #25B at 0x141f79ad0 in .text)"]
+        K5 --> K6{"r8b == 1?<br>(Key Pressed, not Released?)"}
+        K6 -->|No: Key Released| K10["Execute Replaced Prologue"]
+        K6 -->|Yes: Key Down| K7{"edx == DIK_F1 (0x3B)<br>or DIK_F2 (0x3C)<br>or DIK_F3 (0x3D)?"}
+        K7 -->|No: Other Key| K10
+        K7 -->|Yes: Match| K8["xor byte ptr [0x1425b1d40], 1<br>(Atomic Toggle g_bThirdPersonMode)"]
+        K8 --> K10
+        K10 --> K11["Resume Native CKeyboard::ProcessKey (0x140f9922f)"]
     end
 
     subgraph Dynamic Perspective Pipeline [CPlayerView::UpdateView 0x14093f357]
         A["Render Frame: CPlayerView::UpdateView"] --> B["Dynamic Transition Hook (0x14093f357)"]
         B --> C["Unified Evaluator Stub (0x141f7c148 in PSFD00)"]
-        C --> D{"g_bThirdPersonMode == 1?<br>(F1/F3 Hotkey Active?)"}
+        C --> D{"g_bThirdPersonMode == 1?<br>(F1/F2/F3 Hotkey Active?)"}
         D -->|No: Hotkey OFF| E["Desired = 0 (Vanilla 1st Person Default)"]
         D -->|Yes: Hotkey ON| F{"[pPlayer + 0xaec] < 0.99f?<br>(Right-Click ADS Zoom Active?)"}
         F -->|Yes: In ADS| E
@@ -102,11 +102,15 @@ When `CPlayer::SetThirdPerson(pPlayer, 1)` is invoked on returning to OTS 3P:
 - Restores 3rd-person full body rendering.
 - Camera returns to the calibrated OTS position (+0.38m Right, -0.18m elevation, 1.85m distance).
 
-### C. Direct Wine/Proton Input Isolation vs Win32 Message Pump Hooking
-- Under Wine/Proton and XWayland on Linux, `USER32.dll!GetAsyncKeyState` fails when called from CryEngine's secondary **Render Thread** (`CPlayerView::UpdateView`) because secondary threads lack window focus.
-- Polling in earlier stubs failed or caused timing issues.
-- **The Solution:** Intercept the main CryEngine Win32 message pump right after `PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)` at `0x1402472ca`. On the **Main Thread**, every keyboard message (`WM_KEYDOWN`, `0x100`) is cleanly captured. When `VK_F1` (`0x70`) or `VK_F3` (`0x72`) arrives with bit 30 of `lParam` unset (filtering out key hold autorepeats), the stub atomically toggles `g_bThirdPersonMode` at VA `0x1425b1d40`.
-- This zero-overhead hook performs zero API calls, executes in nanoseconds, and never desynchronizes.
+### C. DirectInput Architecture vs Win32 Message Pump Failure
+- In *Homefront: The Revolution* running under Wine/Proton on Linux, keyboard input is acquired exclusively through DirectInput 8 (`DINPUT8.dll!DirectInput8Create` called at `0x140fa442d`).
+- The standard Win32 message pump (`PeekMessageW` / `GetMessageW` / `WndProc`) does **not** process gameplay keyboard strokes because DirectInput acquires buffered physical scan codes directly from the OS/driver.
+- Hooking `PeekMessageW` failed because keyboard messages never passed through that loop during gameplay.
+- **The Solution:** Intercept `CKeyboard::ProcessKey` (`0x140f99220`), which is called directly from `CKeyboard::Update` (`0x140f99390`) as DirectInput `GetDeviceData` flushes its buffered `DIDEVICEOBJECTDATA` array.
+- In `CKeyboard::ProcessKey`:
+  - `edx` holds the DirectInput scan code (`DIK_F1 = 0x3B`, `DIK_F2 = 0x3C`, `DIK_F3 = 0x3D`).
+  - `r8b` holds the key state (`1` = key pressed, `0` = key released).
+- DirectInput reports state transitions without OS autorepeat spam, allowing a clean, atomic toggle of `g_bThirdPersonMode` at VA `0x1425b1d40`.
 
 ### D. In-Game Contextual 1st-Person Actions
 Certain in-game interactions in *Homefront: The Revolution* are hardcoded for first-person rendering. The unified dynamic evaluator at `0x141f7c148` natively detects them:
@@ -119,27 +123,31 @@ Certain in-game interactions in *Homefront: The Revolution* are hardcoded for fi
 
 ## 3. Dynamic Transition Hook & Stub Specification
 
-### A. Message Pump Hook (`0x1402472ca`, Patch #25A, 5 Bytes)
+### A. DirectInput Keyboard Hook (`0x140f99220`, Patch #25A, 15 Bytes)
 ```assembly
-; In CryEngine Win32 Main Loop at 0x1402472ca:
-0x1402472ca: jmp 0x141f79ad0              ; Jump to ThirdPerson_MsgPump_Stub
+; In CKeyboard::ProcessKey at 0x140f99220:
+0x140f99220: jmp 0x141f79ad0              ; Jump to ThirdPerson_Keyboard_Stub
+0x140f99225: nop (x10)
 ```
 
-### B. Message Pump Stub (`0x141f79ad0`, Patch #25B, 128 Bytes in `.text`)
+### B. DirectInput Keyboard Stub (`0x141f79ad0`, Patch #25B, 128 Bytes in `.text`)
 ```assembly
-0x141f79ad0: cmp dword ptr [rsp + 0x38], 0x100 ; WM_KEYDOWN?
-0x141f79ad8: jne .orig
-0x141f79ada: cmp dword ptr [rsp + 0x40], 0x70  ; VK_F1?
-0x141f79adf: je .check_repeat
-0x141f79ae1: cmp dword ptr [rsp + 0x40], 0x72  ; VK_F3?
-0x141f79ae6: jne .orig
-.check_repeat:
-0x141f79ae8: test byte ptr [rsp + 0x4b], 0x40  ; Bit 30 of lParam (repeat flag)
-0x141f79aed: jne .orig                         ; Ignore auto-repeats
-0x141f79aef: xor byte ptr [rip + 0x63824a], 1  ; Toggle g_bThirdPersonMode at 0x1425b1d40
+0x141f79ad0: test r8b, r8b                     ; Key pressed? (1 = down, 0 = up)
+0x141f79ad3: jz .orig                          ; Ignore key release
+0x141f79ad5: cmp edx, 0x3b                     ; DIK_F1?
+0x141f79ad8: je .toggle
+0x141f79ada: cmp edx, 0x3c                     ; DIK_F2?
+0x141f79add: je .toggle
+0x141f79adf: cmp edx, 0x3d                     ; DIK_F3?
+0x141f79ae2: jne .orig
+.toggle:
+0x141f79ae4: xor byte ptr [rip + 0x638255], 1  ; Atomically toggle g_bThirdPersonMode at 0x1425b1d40
 .orig:
-0x141f79af6: lea rcx, [rsp + 0x30]             ; Original instruction
-0x141f79afb: jmp 0x1402472cf                   ; Jump back to TranslateMessage
+0x141f79aeb: mov qword ptr [rsp + 0x18], rbx   ; Replaced original prologue
+0x141f79af0: mov qword ptr [rsp + 0x20], rbp
+0x141f79af5: push rsi
+0x141f79af6: sub rsp, 0x60
+0x141f79afa: jmp 0x140f9922f                   ; Resume native CKeyboard::ProcessKey
 ```
 
 ### C. Dynamic Transition Hook (`0x14093f357`, Patch #22A, 9 Bytes)
@@ -223,12 +231,12 @@ Replaces `mov rax, [rdx]; call [rax + 0x228]` with a direct jump to the unified 
 | Patch Name | Virtual Address | File Offset | Size | Purpose |
 | :--- | :--- | :--- | :---: | :--- |
 | `ThirdPerson_DynamicTransition_Hook` (#22A) | `0x14093f357` | `0x93e757` | 9 B | Intercepts `CPlayerView::UpdateView` to jump to unified evaluator |
-| `ThirdPerson_DynamicTransition_Stub` (#22B) | `0x141f7c148` | `0x1f7b148` | 180 B | Evaluates F1/F3 mode, ADS zoom, sliding, weapon customize, phone/map, minigames |
+| `ThirdPerson_DynamicTransition_Stub` (#22B) | `0x141f7c148` | `0x1f7b148` | 180 B | Evaluates F1/F2/F3 mode, ADS zoom, sliding, weapon customize, phone/map, minigames |
 | `ThirdPerson_CameraDistance` (#23) | `0x1408a481a` | `0x8a3c1a` | 8 B | Tightens camera distance from 3.5m to 1.85m action perspective |
 | `ThirdPerson_CameraOTS_Hook` (#24A) | `0x14093f469` | `0x93e869` | 16 B | Intercepts view commit in `CPlayerView::UpdateView` |
 | `ThirdPerson_CameraOTS_Stub` (#24B) | `0x141f79b50` | `0x1f78f50` | 164 B | Applies $+0.38\text{m}$ Right-vector offset and $-0.18\text{m}$ elevation (*Gears of War* OTS) |
-| `ThirdPerson_MsgPump_Hook` (#25A) | `0x1402472ca` | `0x2466ca` | 5 B | Hooks main CryEngine Win32 message pump right after `PeekMessageW` |
-| `ThirdPerson_MsgPump_Stub` (#25B) | `0x141f79ad0` | `0x1f78ed0` | 128 B | Atomic F1/F3 hotkey toggle stub in `.text` (toggles `g_bThirdPersonMode` at `0x1425b1d40`) |
+| `ThirdPerson_Keyboard_Hook` (#25A) | `0x140f99220` | `0xf98620` | 15 B | Hooks `CKeyboard::ProcessKey` to intercept DirectInput F1/F2/F3 scan codes |
+| `ThirdPerson_Keyboard_Stub` (#25B) | `0x141f79ad0` | `0x1f78ed0` | 128 B | Atomic F1/F2/F3 toggle stub in `.text` (toggles `g_bThirdPersonMode` at `0x1425b1d40`) |
 
 ---
 
@@ -236,5 +244,5 @@ Replaces `mov rax, [rdx]; call [rax + 0x228]` with a direct jump to the unified 
 
 - **Vanilla Binary MD5:** `0326ea202fcd7ceb3760d14bc8d07f63`
 - **Vanilla Binary SHA256:** `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c`
-- **Fully Patched Binary MD5:** `b536426f8ae27559e2eb861596111e47`
-- **Fully Patched Binary SHA256:** `96e4771ed73827114f2db97a9f109ab93ca50aa20147e43e3c5f61eae067a0f2`
+- **Fully Patched Binary MD5:** `ff60ce72d070935e4a068d812e2fb6df`
+- **Fully Patched Binary SHA256:** `722c4af6c0662c76ed437a0ca932e0626ee669a3efa979d91aa9c911b76cf31f`

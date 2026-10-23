@@ -657,11 +657,11 @@ Following the deployment of Phase 11 (`b18da28dc96c31fc73f6f4807a27b251`), the g
 
 ---
 
-## Phase 12: Production-Grade F1/F3 Hotkey, In-Game Contextual Transitions (Weapon Customization, Phone, Map, Sliding), and 30-Patch Verification
+## Phase 12: Production-Grade DirectInput Keyboard Hotkey (F1/F2/F3), In-Game Contextual Transitions (Weapon Customization, Phone, Map, Sliding), and 30-Patch Verification
 
 ### 1. Technical Objectives & Architectural Requirements
 Starting from the stable baseline, three critical capabilities were integrated without compromising binary stability:
-1. **F1 / F3 Viewpoint Hotkey:** In-game keypress to toggle between vanilla 1st-person view and modded OTS 3rd-person view, defaulting to vanilla 1st-person on spawn or resume.
+1. **F1 / F2 / F3 Viewpoint Hotkey:** In-game keypress to toggle between vanilla 1st-person view and modded OTS 3rd-person view, defaulting to vanilla 1st-person on spawn or resume.
 2. **Contextual 1st-Person Perspective for Required In-Game Actions:** Dynamically switch into vanilla 1st-person using the native `CPlayer::SetThirdPerson` pipeline during:
    - Modular weapon customization (pressing `X`)
    - Smartphone interface (pressing `V`)
@@ -669,18 +669,17 @@ Starting from the stable baseline, three critical capabilities were integrated w
    - Strike terminal hacks, lockpicking, and drone control
 3. **Sprint-Sliding Dynamic Perspective Transition:** Native 3P character models lack a dedicated sliding animation. Sliding (`Ctrl` during sprint) must dynamically drop to 1st person, render the native sliding animation, and seamlessly snap back to 3rd person upon completion.
 
-### 2. Hotkey Implementation: Win32 Message Pump Interception
-- **Root Cause of `GetAsyncKeyState` Failure:**
-  In Wine/Proton under XWayland, `CPlayerView::UpdateView` runs on CryEngine's secondary **Render Thread**, whereas keyboard focus is maintained on the **Main Thread**. Polling via `GetAsyncKeyState` continuously returned 0.
-- **The Solution (Patches #25A & #25B):**
-  Intercept CryEngine's main Win32 message pump right after `PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)` at `0x1402472ca`:
-  - Hook at `0x1402472ca` (`5 bytes`, `e9 01 28 d3 01`) jumps to `ThirdPerson_MsgPump_Stub` at `0x141f79ad0` in `.text`.
-  - Stub inspects the message buffer at `[rsp + 0x30]`:
-    - `[rsp + 0x38] == 0x100` (`WM_KEYDOWN`)
-    - `[rsp + 0x40] == 0x70` (`VK_F1`) or `0x72` (`VK_F3`)
-    - `!([rsp + 0x4b] & 0x40)` (filters out key-hold repeat messages)
-  - Toggles `g_bThirdPersonMode` at `0x1425b1d40` via `xor byte ptr [rip + 0x63824a], 1`.
-  - Executes original instruction `lea rcx, [rsp + 0x30]` and jumps back to `TranslateMessage` at `0x1402472cf`.
+### 2. Hotkey Implementation: DirectInput CKeyboard::ProcessKey Interception
+- **Root Cause of Win32 Message Pump Hook Failure:**
+  In *Homefront: The Revolution*, CryEngine initializes DirectInput 8 (`DINPUT8.dll!DirectInput8Create` called at `0x140fa442d`). Under Wine/Proton on Linux, DirectInput bypasses the Win32 window message loop (`PeekMessageW` / `WndProc`) during gameplay and reads hardware scan codes directly via buffered `GetDeviceData`. Consequently, hooking `PeekMessageW` never observed physical keypresses while in-game.
+- **The DirectInput Solution (Patches #25A & #25B):**
+  Intercept `CKeyboard::ProcessKey` at `0x140f99220`, which is invoked on every buffered key event during `CKeyboard::Update` (`0x140f99390`):
+  - Hook at `0x140f99220` (`15 bytes`, `e9 ab 08 fe 00 90 ...`) jumps to `ThirdPerson_Keyboard_Stub` at `0x141f79ad0` in `.text`.
+  - Stub inspects key parameters passed in registers:
+    - `r8b == 1` (key pressed, ignoring key release events)
+    - `edx == 0x3B` (`DIK_F1`), `0x3C` (`DIK_F2`), or `0x3D` (`DIK_F3`)
+  - Atomically toggles `g_bThirdPersonMode` at `0x1425b1d40` via `xor byte ptr [rip + 0x638255], 1`.
+  - Executes replaced original prologue instructions (`mov [rsp+0x18], rbx; mov [rsp+0x20], rbp; push rsi; sub rsp, 0x60`) and jumps back to `0x140f9922f`.
   - Zero heap allocation, zero Win32 API calls, 100% crash-proof.
 
 ### 3. Unified Dynamic Perspective Evaluator (Patches #22A & #22B)
@@ -726,16 +725,17 @@ Starting from the stable baseline, three critical capabilities were integrated w
 | **#20C** | `cc_reSeeTargetTime` | `0x1424aca20` | `0x24aa420` | `00 00 80 3f` (`1.0f`) | `cd cc cc 3d` (**`0.1f`**) | Line-of-sight re-acquisition: 1.0s $\to$ 100ms |
 | **#21** | Companion Aim Spread Neutralization | `0x140706327` | `0x705727` | `e8 34 0c fe ff f3 0f 58 47 08 f3 0f 11 47 08` | `83 67 04 00 83 67 08 00 90 90 90 90 90 90 90` | Clears artificial pitch & yaw miss offsets |
 | **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | `48 8b 02 ff 90 28 02 00 00` (9 B) | `e9 ec cd 63 01 90 90 90 90` (9 B) | Intercepts `CPlayerView::UpdateView` to jump to unified perspective evaluator |
-| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f7c148` | `0x1f7b148` | `00` $\times 180$ (cave in `PSFD00`) | Unified perspective evaluator stub (180 B) | Evaluates F1/F3 mode, ADS zoom, sprint sliding, weapon customize (X), phone (V), map (M), hacking minigames |
+| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f7c148` | `0x1f7b148` | `00` $\times 180$ (cave in `PSFD00`) | Unified perspective evaluator stub (180 B) | Evaluates F1/F2/F3 mode, ADS zoom, sprint sliding, weapon customize (X), phone (V), map (M), hacking minigames |
 | **#23** | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | `f3 0f 10 1d 86 f3 75 01` | `f3 0f 10 1d 0a fb 94 01` | Tightens camera distance: 3.5m $\to$ 1.85m |
 | **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | `8b 03 89 07 8b 43 04 89 47 04 ...` (16 B) | `e9 e2 a6 63 01 90 ...` (16 bytes) | Hooks view position commit in `CPlayerView::UpdateView` |
 | **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | `00` $\times 164$ (cave in `.text`) | Full SSE basis-vector calibration stub (164 B) | +0.38m lateral right-shoulder offset, -0.18m elevation |
-| **#25A** | `ThirdPerson_MsgPump_Hook` | `0x1402472ca` | `0x2466ca` | `48 8d 4c 24 30` (5 B) | `e9 01 28 d3 01` (5 B) | Hooks main CryEngine Win32 message pump right after `PeekMessageW` |
-| **#25B** | `ThirdPerson_MsgPump_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 128$ (cave in `.text`) | Atomic F1/F3 hotkey toggle stub (128 B) | Toggles `g_bThirdPersonMode` at `0x1425b1d40` on non-repeating `WM_KEYDOWN` (`VK_F1` or `VK_F3`) |
+| **#25A** | `ThirdPerson_Keyboard_Hook` | `0x140f99220` | `0xf98620` | `48 89 5c 24 18 48 89 6c 24 20 56 48 83 ec 60` (15 B) | `e9 ab 08 fe 00 90 90 90 90 90 90 90 90 90 90` (15 B) | Hooks `CKeyboard::ProcessKey` to intercept DirectInput F1/F2/F3 keypresses |
+| **#25B** | `ThirdPerson_Keyboard_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 128$ (cave in `.text`) | DirectInput key event stub (128 B) | Toggles `g_bThirdPersonMode` at `0x1425b1d40` on physical keypress (`DIK_F1`/`F2`/`F3`) |
 
 ### 5. Status & Deployment
 - **Status:** **APPLIED & VERIFIED ACROSS ALL TARGETS (30/30 Patches Active)**
   - Local rework target: `/home/jackedhawk117/rework/Homefront2_Release.exe`
   - Steam production target: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
-  - **Verified Patched MD5:** `b536426f8ae27559e2eb861596111e47`
-  - **Verified Patched SHA256:** `96e4771ed73827114f2db97a9f109ab93ca50aa20147e43e3c5f61eae067a0f2`
+  - **Verified Patched MD5:** `ff60ce72d070935e4a068d812e2fb6df`
+  - **Verified Patched SHA256:** `722c4af6c0662c76ed437a0ca932e0626ee669a3efa979d91aa9c911b76cf31f`
+
