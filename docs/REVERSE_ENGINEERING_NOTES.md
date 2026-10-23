@@ -649,8 +649,8 @@ Following the deployment of Phase 11 (`b18da28dc96c31fc73f6f4807a27b251`), the g
 ### 2. Immediate Restoration & Active Status
 - Executable binaries at both `/home/jackedhawk117/rework/Homefront2_Release.exe` and Steam `Bin64/Homefront2_Release.exe` were restored and then upgraded to Phase 12.
 - **Current Verified Hashes (Phase 12):**
-  - **MD5:** `fe9e33ed70e14a1d7e4a34d9a58f496e`
-  - **SHA256:** `4f6db06fcf3d96f36dffd0831f40f98b6c361a823a5f5d44f51b4e3f08b03fa1`
+  - **MD5:** `3612b20343a57664751364d03923b252`
+  - **SHA256:** `f07ae9e0a1a3c9785fbc232eac655fdc34f3a4325b063d10a80dab3f20eacae1`
 - **Patches Active:** 28/28 verified (Patches #1–#21, #22A, #22B, #23, #24A, #24B).
 - Character mesh transitions, 1P weapon rendering in ADS, wall bullet impacts, and F1 hotkey toggle are fully verified.
 
@@ -667,6 +667,6 @@ Instead of hooking `WndProc` (which fires thousands of OS messages during loadin
 5. **1st-Person Default:** Starts in 100% vanilla 1st-person (`g_bThirdPersonMode = 0` at `0x1425b1d20`). F1 toggles 3rd-person OTS on/off dynamically. In 3rd-person mode, Right-Click ADS toggle still snaps into 1st-person iron sights / scope aiming with native weapon 3D models and bullet impacts.
 
 ### 2. Verification Hashes
-- **MD5:** `fe9e33ed70e14a1d7e4a34d9a58f496e`
-- **SHA256:** `4f6db06fcf3d96f36dffd0831f40f98b6c361a823a5f5d44f51b4e3f08b03fa1`
+- **MD5:** `3612b20343a57664751364d03923b252`
+- **SHA256:** `f07ae9e0a1a3c9785fbc232eac655fdc34f3a4325b063d10a80dab3f20eacae1`
 

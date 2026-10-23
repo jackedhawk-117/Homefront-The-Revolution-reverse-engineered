@@ -66,8 +66,8 @@ flowchart LR
 | **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
 | **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
 | **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
-| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `fe9e33ed70e14a1d7e4a34d9a58f496e` |
-| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `4f6db06fcf3d96f36dffd0831f40f98b6c361a823a5f5d44f51b4e3f08b03fa1` |
+| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `3612b20343a57664751364d03923b252` |
+| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `f07ae9e0a1a3c9785fbc232eac655fdc34f3a4325b063d10a80dab3f20eacae1` |
 
 ---
 
