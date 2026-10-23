@@ -647,9 +647,26 @@ Following the deployment of Phase 11 (`b18da28dc96c31fc73f6f4807a27b251`), the g
    - Furthermore, `g_thirdPersonEnabled` was placed at `0x144000000`, 27 MB beyond `.data`'s raw file data.
 
 ### 2. Immediate Restoration & Active Status
-- Executable binaries at both `/home/jackedhawk117/rework/Homefront2_Release.exe` and Steam `Bin64/Homefront2_Release.exe` have been immediately restored to the proven, stable 28-patch build.
-- **Current Verified Hashes:**
-  - **MD5:** `966612506e1e4781ecd49daf6a0a77d5`
-  - **SHA256:** `3f30f38bea87d9b50382b03cf3cffb58009ba59bf6e765a0353a1cd9563e52d2`
+- Executable binaries at both `/home/jackedhawk117/rework/Homefront2_Release.exe` and Steam `Bin64/Homefront2_Release.exe` were restored and then upgraded to Phase 12.
+- **Current Verified Hashes (Phase 12):**
+  - **MD5:** `fe9e33ed70e14a1d7e4a34d9a58f496e`
+  - **SHA256:** `4f6db06fcf3d96f36dffd0831f40f98b6c361a823a5f5d44f51b4e3f08b03fa1`
 - **Patches Active:** 28/28 verified (Patches #1–#21, #22A, #22B, #23, #24A, #24B).
-- Character mesh transitions, 1P weapon rendering in ADS, and wall bullet impacts are fully preserved.
+- Character mesh transitions, 1P weapon rendering in ADS, wall bullet impacts, and F1 hotkey toggle are fully verified.
+
+---
+
+## Phase 12: Safe Main-Thread F1 Hotkey Toggle in CPlayerView::UpdateView (October 23, 2026)
+
+### 1. Architectural Solution
+Instead of hooking `WndProc` (which fires thousands of OS messages during loading screens and level loads), the F1 keyboard poll was moved directly into `ThirdPerson_DynamicTransition_Stub` (`0x141f79ad0`, Patch #22B) in `.text`:
+1. **Isolated to Active Gameplay:** `CPlayerView::UpdateView` is only invoked when rendering active 3D player gameplay, never during loading screens or main menu.
+2. **Crash-Free Win32 Polling:** Invokes `USER32.dll!GetAsyncKeyState(VK_F1 = 0x70)` via existing IAT slot `0x141f7e240`.
+3. **Leading-Edge Toggle:** Bit 15 (`0x8000`) of `GetAsyncKeyState` is edge-detected using an atomic `xchg` with `g_bF1PrevState` at `0x1425b1d21` in raw `.data`.
+4. **Zero Overlap:** Compacted down to 125 bytes + 3 bytes padding (128 bytes total), fitting perfectly within Patch #22B's original `.text` allocation without encroaching on Patch #24B at `0x141f79b50`.
+5. **1st-Person Default:** Starts in 100% vanilla 1st-person (`g_bThirdPersonMode = 0` at `0x1425b1d20`). F1 toggles 3rd-person OTS on/off dynamically. In 3rd-person mode, Right-Click ADS toggle still snaps into 1st-person iron sights / scope aiming with native weapon 3D models and bullet impacts.
+
+### 2. Verification Hashes
+- **MD5:** `fe9e33ed70e14a1d7e4a34d9a58f496e`
+- **SHA256:** `4f6db06fcf3d96f36dffd0831f40f98b6c361a823a5f5d44f51b4e3f08b03fa1`
+

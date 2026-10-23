@@ -1,7 +1,7 @@
 {
   "target_binary": "Homefront2_Release.exe",
   "vanilla_md5": "0326ea202fcd7ceb3760d14bc8d07f63",
-  "patched_md5": "966612506e1e4781ecd49daf6a0a77d5",
+  "patched_md5": "fe9e33ed70e14a1d7e4a34d9a58f496e",
   "total_patches": 28,
   "patches": [
     {
@@ -299,9 +299,9 @@
       "offset": 33001168,
       "size": 128,
       "category": "Third-Person Camera",
-      "desc": "Evaluates ADS zoom and minigames, calling native CPlayer::SetThirdPerson to transition character meshes, weapon slots, and firing muzzle helpers",
+      "desc": "Polls F1 hotkey (VK_F1) via GetAsyncKeyState to toggle 1st/3rd person (1P default). In 3P mode, evaluates ADS zoom and minigames, calling native CPlayer::SetThirdPerson to transition character meshes, weapon slots, and firing muzzle helpers",
       "original_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-      "patched_hex": "4885d2746f80ba9c02000000745431c083ba980100000075138b8aec0a000081f9a4707d3f7205b8010000003882bd010000742e41504151415241534883ec30f30f7f44242088c24c89e1e83c4879fef30f6f4424204883c430415b415a415941584c89e1498b0424ff9028020000e91c589cfe31c0ebf7cccccccccccccccc",
+      "patched_hex": "4180bc249c0200000074654883ec28b970000000ff15564700004c8d052f826300c1e80f4186400184c0750b418078010175044180300131d241803801751b4183bc24980100000075104181bc24ec0a0000a4707d3f7202b20141389424bd01000074084c89e1e8204879fe4883c428418a8424bd010000e913589cfecccccc",
       "file_offset_hex": "0x1f78ed0"
     },
     {
@@ -341,5 +341,5 @@
       "file_offset_hex": "0x1f78f50"
     }
   ],
-  "patched_sha256": "3f30f38bea87d9b50382b03cf3cffb58009ba59bf6e765a0353a1cd9563e52d2"
+  "patched_sha256": "4f6db06fcf3d96f36dffd0831f40f98b6c361a823a5f5d44f51b4e3f08b03fa1"
 }
