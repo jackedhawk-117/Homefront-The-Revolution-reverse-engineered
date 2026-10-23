@@ -2,7 +2,7 @@
 
 [![Platform: PC / Steam](https://img.shields.io/badge/Platform-PC%20%2F%20Steam%20(x86--64)-blue.svg)](#)
 [![Engine: CryEngine 3.8](https://img.shields.io/badge/Engine-CryEngine%203.8-red.svg)](#)
-[![Patches: 28 Applied](https://img.shields.io/badge/Patches-28%20Applied%20%2F%20Verified-brightgreen.svg)](#master-patch-matrix)
+[![Patches: 30 Applied](https://img.shields.io/badge/Patches-30%20Applied%20%2F%20Verified-brightgreen.svg)](#master-patch-matrix)
 [![Durability: Freedom Fighters](https://img.shields.io/badge/Durability-Freedom%20Fighters%20(2003)-orange.svg)](#)
 [![Guide: Installation](https://img.shields.io/badge/Guide-Installation%20(Win%20%2F%20Linux%20%2F%20Deck)-blueviolet.svg)](INSTALLATION.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -45,7 +45,7 @@ flowchart LR
 - **Freedom Fighters Combat Durability (Patch #19):** Grants followers 75% damage resistance (4x effective HP), allowing fighters to survive 12–15 assault rifle rounds rather than dropping instantly.
 - **Zero-Hesitation Combat Reaction (Patch #20):** Eliminates the artificial 2-second staring delay when AI encounters enemies outside cover; units engage and open fire within 150ms.
 - **Precision Guerrilla Marksmanship (Patch #21):** Neutralizes the game's artificial companion aim penalty; followers fire with true center-mass accuracy while retaining natural weapon physics and animation variation.
-- **Over-The-Shoulder Third-Person Camera & Dynamic Aiming (Patches #22–#25):** Traversal and hipfiring are rendered in a cinematic *Gears of War* over-the-shoulder 3rd-person perspective (+0.38m lateral right-shoulder offset, -0.18m elevation, 1.85m distance). Clicking Right-Click (vanilla toggle ADS) dynamically snaps into 1st-person iron sights / scope aiming with zero parallax and laser accuracy, snapping back to OTS 3rd-person on toggle-off. Smartphone hacking minigames automatically run in 1st person. Default unowned socket weapons on Ethan's mesh are cleanly suppressed.
+- **Over-The-Shoulder Third-Person Camera & Dynamic Aiming (Patches #22–#25):** Traversal and hipfiring can be toggled into a cinematic *Gears of War* over-the-shoulder 3rd-person perspective (+0.38m lateral right-shoulder offset, -0.18m elevation, 1.85m distance). Pressing **F1** toggles between pure vanilla 1st-person and 3rd-person OTS (game starts in 1st person by default). When 3rd-person mode is active, clicking Right-Click (vanilla toggle ADS) dynamically snaps into 1st-person iron sights / scope aiming with native weapon 3D models and wall bullet impacts, snapping back to OTS 3rd-person on toggle-off. Smartphone hacking minigames automatically run in 1st person.
 - **Urban Navigation & Choke Point Queueing (Patches #14 & #15):** Calibrates inter-agent personal space to 0.25m, allowing all 12 followers to stream through narrow 1.2m outpost doors without jamming.
 - **Tactical Cover Perimeter (Patches #11, #12 & #13):** Expands formation radius from 2m/3m to ~22m so 12 squad members fan out into distinct cover positions instead of collapsing into a clump.
 - **Target Memory & Rooftop Acquisition (Patches #17 & #18):** Extends sight-loss memory from 2s to 30s and enables infinite elevation sight, preventing the squad from ignoring rooftop snipers.
@@ -60,14 +60,14 @@ flowchart LR
 | **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
 | **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
 | **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
-| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `966612506e1e4781ecd49daf6a0a77d5` |
-| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `3f30f38bea87d9b50382b03cf3cffb58009ba59bf6e765a0353a1cd9563e52d2` |
+| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `b18da28dc96c31fc73f6f4807a27b251` |
+| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `867953c900199fb71686e2672d14da8774429133874261022d61a575887b9f56` |
 
 ---
 
 ## Quick Start & Patcher Usage
 
-The included Python CLI tool ([`patcher.py`](patcher.py)) applies all 21 patches with safety checks, automatic `.vanilla` backups, and verification.
+The included Python CLI tool ([`patcher.py`](patcher.py)) applies all 30 patches with safety checks, automatic `.vanilla` backups, and verification.
 
 ### 1. Verify Executable Status
 ```bash
@@ -172,7 +172,7 @@ See [`docs/THIRD_PERSON_CAMERA.md`](docs/THIRD_PERSON_CAMERA.md) for complete ar
 .
 ├── README.md                          # Master project documentation
 ├── LICENSE                            # MIT License
-├── patches.json                       # Machine-readable patch definitions (28 entries)
+├── patches.json                       # Machine-readable patch definitions (30 entries)
 ├── patcher.py                         # Standalone CLI binary patcher
 ├── docs/
 │   ├── REVERSE_ENGINEERING_NOTES.md  # Complete research notes (Phases 1–6)
