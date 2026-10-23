@@ -109,91 +109,57 @@ Replaces `mov rax, [rdx]; call [rax + 0x228]` with a direct jump to the transiti
 ### B. Dynamic Transition Stub (`0x141f79ad0`, 128 Bytes)
 ```assembly
 0x141f79ad0: test rdx, rdx
-0x141f79ad3: je 0x141f79b4a               ; NULL check -> return 0
+0x141f79ad3: je 0x141f79b44               ; NULL check -> return 0
 0x141f79ad5: cmp byte ptr [rdx + 0x29c], 0
-0x141f79adc: je 0x141f79b38               ; AI companion -> skip transition, call vanilla IsThirdPerson()
+0x141f79adc: je 0x141f79b32               ; AI companion -> skip transition, call vanilla IsThirdPerson()
 0x141f79ade: xor eax, eax                 ; Desired default = 0 (1st person)
-0x141f79ae0: cmp byte ptr [rip + 0x2086519], 0 ; Check g_thirdPersonEnabled at 0x144000000 (F1 toggle)
-0x141f79ae7: je 0x141f79b02               ; F1 toggle off (0) -> keep desired = 0 (vanilla 1st person)
-0x141f79ae9: cmp dword ptr [rdx + 0x198], 0
-0x141f79af0: jne 0x141f79b02              ; Minigame active -> desired = 0
-0x141f79af2: mov ecx, dword ptr [rdx + 0xaec]
-0x141f79af8: cmp ecx, 0x3f7d70a4         ; 0.99f zoom threshold
-0x141f79afe: jb 0x141f79b02               ; Zoom < 0.99f (in ADS) -> desired = 0
-0x141f79b00: mov al, 1                    ; Traversal / Hipfire -> desired = 1 (3rd person OTS)
-0x141f79b02: cmp byte ptr [rdx + 0x1bd], al
-0x141f79b08: je 0x141f79b38               ; Current state == desired -> fast path skip!
-0x141f79b0a: push r8
-0x141f79b0c: push r9
-0x141f79b0e: push r10
-0x141f79b10: push r11
-0x141f79b12: sub rsp, 0x30                ; 16-byte stack alignment + 32-byte shadow space
-0x141f79b16: movdqu xmmword ptr [rsp + 0x20], xmm0 ; Preserve xmm0
-0x141f79b1c: mov dl, al                   ; dl = desired (0 or 1)
-0x141f79b1e: mov rcx, r12                 ; rcx = pPlayer
-0x141f79b21: call 0x14070e35c             ; Native CPlayer::SetThirdPerson!
-0x141f79b26: movdqu xmm0, xmmword ptr [rsp + 0x20]
-0x141f79b2c: add rsp, 0x30
-0x141f79b30: pop r11
-0x141f79b32: pop r10
-0x141f79b34: pop r9
-0x141f79b36: pop r8
-0x141f79b38: mov rcx, r12
-0x141f79b3b: mov rax, qword ptr [r12]
-0x141f79b3f: call qword ptr [rax + 0x228] ; Call vanilla CPlayer::IsThirdPerson()
-0x141f79b45: jmp 0x14093f360              ; Resume CPlayerView::UpdateView
-0x141f79b4a: xor eax, eax
-0x141f79b4c: jmp 0x141f79b45
+0x141f79ae0: cmp dword ptr [rdx + 0x198], 0
+0x141f79ae7: jne 0x141f79afc              ; Minigame active -> desired = 0
+0x141f79ae9: mov ecx, dword ptr [rdx + 0xaec]
+0x141f79aef: cmp ecx, 0x3f7d70a4         ; 0.99f zoom threshold
+0x141f79af5: jb 0x141f79afc               ; Zoom < 0.99f (in ADS) -> desired = 0
+0x141f79af7: mov eax, 1                   ; Traversal / Hipfire -> desired = 1 (3rd person)
+0x141f79afc: cmp byte ptr [rdx + 0x1bd], al
+0x141f79b02: je 0x141f79b32               ; Current state == desired -> fast path skip!
+0x141f79b04: push r8
+0x141f79b06: push r9
+0x141f79b08: push r10
+0x141f79b0a: push r11
+0x141f79b0c: sub rsp, 0x30                ; 16-byte stack alignment + 32-byte shadow space
+0x141f79b10: movdqu xmmword ptr [rsp + 0x20], xmm0 ; Preserve xmm0
+0x141f79b16: mov dl, al                   ; dl = desired (0 or 1)
+0x141f79b18: mov rcx, r12                 ; rcx = pPlayer
+0x141f79b1b: call 0x14070e35c             ; Native CPlayer::SetThirdPerson!
+0x141f79b20: movdqu xmm0, xmmword ptr [rsp + 0x20]
+0x141f79b26: add rsp, 0x30
+0x141f79b2a: pop r11
+0x141f79b2c: pop r10
+0x141f79b2e: pop r9
+0x141f79b30: pop r8
+0x141f79b32: mov rcx, r12
+0x141f79b35: mov rax, qword ptr [r12]
+0x141f79b39: call qword ptr [rax + 0x228] ; Call vanilla CPlayer::IsThirdPerson()
+0x141f79b3f: jmp 0x14093f360              ; Resume CPlayerView::UpdateView
+0x141f79b44: xor eax, eax
+0x141f79b46: jmp 0x141f79b3f
 ```
 
 ---
 
-## 4. F1 Hotkey Perspective Switcher & Win32 WndProc Interception
-
-### A. Architectural Concept
-To reliably toggle perspective across Linux/Wine/Proton without polling broken Win32 key tables, the mod hooks the primary Win32 window procedure (`WndProc` at `0x1402494b8`).
-
-### B. WndProc Hook (`0x1402494b8`, 15 Bytes)
-```assembly
-0x1402494b8: jmp 0x141f7c150              ; Jump to WndProc_F1_Stub
-0x1402494bd: nop (x10)
-```
-
-### C. WndProc F1 Evaluation Stub (`0x141f7c150`, 59 Bytes)
-```assembly
-0x141f7c150: cmp edx, 0x100                   ; WM_KEYDOWN?
-0x141f7c156: je 0x141f7c160
-0x141f7c158: cmp edx, 0x104                   ; WM_SYSKEYDOWN?
-0x141f7c15e: jne 0x141f7c177
-0x141f7c160: cmp r8d, 0x70                    ; VK_F1?
-0x141f7c164: jne 0x141f7c177
-0x141f7c166: test r9d, 0x40000000             ; Bit 30: ignore autorepeat messages
-0x141f7c16d: jne 0x141f7c177
-0x141f7c16f: lock xor byte ptr [rip + 0x2083e89], 1  ; Atomically toggle [0x144000000] (0 <-> 1)
-0x141f7c177: mov qword ptr [rsp + 8], rbx     ; Replaced original prologue
-0x141f7c17c: mov qword ptr [rsp + 0x10], rbp
-0x141f7c181: mov qword ptr [rsp + 0x18], rsi
-0x141f7c186: jmp 0x1402494c7                  ; Return to WndProc (push rdi)
-```
-
----
-
-## 5. Active Binary Patch Table
+## 4. Active Binary Patch Table
 
 | Patch Name | Virtual Address | File Offset | Size | Purpose |
 | :--- | :--- | :--- | :---: | :--- |
 | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | 9 B | Intercepts `CPlayerView::UpdateView` to trigger native `SetThirdPerson` on ADS toggle and minigames |
-| `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | Evaluates F1 hotkey toggle, ADS zoom, and minigames; triggers native mesh & weapon slot transitions |
+| `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | Transitions character meshes, weapon slots (`0x140826318`), and muzzle helpers seamlessly |
 | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | 8 B | Tightens camera distance from 3.5m to 1.85m action perspective |
 | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | Intercepts view commit in `CPlayerView::UpdateView` |
 | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | 164 B | Applies $+0.38\text{m}$ Right-vector offset and $-0.18\text{m}$ elevation (*Gears of War* OTS) |
-| `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | 15 B | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
-| `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 59 B | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN` for VK_F1, filters autorepeat, and toggles `g_thirdPersonEnabled` |
 
 ---
 
-## 6. Verification Checksums
+## 5. Verification Checksums
 
 - **Vanilla Binary MD5:** `0326ea202fcd7ceb3760d14bc8d07f63`
-- **Fully Patched Binary MD5:** `b18da28dc96c31fc73f6f4807a27b251`
-- **Fully Patched Binary SHA256:** `867953c900199fb71686e2672d14da8774429133874261022d61a575887b9f56`
+- **Fully Patched Binary MD5:** `966612506e1e4781ecd49daf6a0a77d5`
+- **Fully Patched Binary SHA256:** `3f30f38bea87d9b50382b03cf3cffb58009ba59bf6e765a0353a1cd9563e52d2`
