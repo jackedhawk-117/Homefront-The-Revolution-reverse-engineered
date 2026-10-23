@@ -647,35 +647,9 @@ Following the deployment of Phase 11 (`b18da28dc96c31fc73f6f4807a27b251`), the g
    - Furthermore, `g_thirdPersonEnabled` was placed at `0x144000000`, 27 MB beyond `.data`'s raw file data.
 
 ### 2. Immediate Restoration & Active Status
-- Executable binaries at both `/home/jackedhawk117/rework/Homefront2_Release.exe` and Steam `Bin64/Homefront2_Release.exe` were restored and upgraded to the verified crash-free build.
-- **Current Verified Hashes (Phase 12 Complete - Stack Aligned & Full EAX Key State):**
-  - **MD5:** `d1a6e03d2a0bc7640cb825271a67d2b4`
-  - **SHA256:** `3c8c72bd243cdc34c7274df69de9e732c498ab0a3fc2e2a37947a3f92a0af786`
+- Executable binaries at both `/home/jackedhawk117/rework/Homefront2_Release.exe` and Steam `Bin64/Homefront2_Release.exe` have been immediately restored to the proven, stable 28-patch build.
+- **Current Verified Hashes:**
+  - **MD5:** `966612506e1e4781ecd49daf6a0a77d5`
+  - **SHA256:** `3f30f38bea87d9b50382b03cf3cffb58009ba59bf6e765a0353a1cd9563e52d2`
 - **Patches Active:** 28/28 verified (Patches #1–#21, #22A, #22B, #23, #24A, #24B).
-- Character mesh transitions, 1P weapon rendering in ADS, wall bullet impacts, and F1 hotkey toggle are fully verified.
-
----
-
-## Phase 12: Safe Main-Thread F1 Hotkey Toggle & x86-64 Stack Alignment Fix (October 23, 2026)
-
-### 1. Architectural Solution
-Instead of hooking `WndProc` (which fires thousands of OS messages during loading screens and level loads), the F1 keyboard poll was moved directly into `ThirdPerson_DynamicTransition_Stub` (`0x141f79ad0`, Patch #22B) in `.text`:
-1. **Isolated to Active Gameplay:** `CPlayerView::UpdateView` is only invoked when rendering active 3D player gameplay, never during loading screens or main menu.
-2. **Crash-Free Win32 Polling:** Invokes `USER32.dll!GetAsyncKeyState(VK_F1 = 0x70)` via existing IAT slot `0x141f7e240`.
-3. **Leading-Edge Toggle & Wine/Proton Return Normalization (`test eax, eax`):**
-   - Win32 `GetAsyncKeyState` returns `0x8000` (down) and/or `0x0001` (pressed since last call). Under Wine/Proton on Linux/Wayland, `GetAsyncKeyState` frequently returns `0x0001` (where `AH == 0x00`, `AL == 0x01`).
-   - Testing `ah, 0x80` missed keypresses where only bit 0 was set or where Wine returns non-standard bit representations.
-   - Replacing with `test eax, eax; setne al` tests all bits of the return value, reliably detecting the keypress in all Wine/Proton and native Windows environments.
-   - The rising edge is tracked atomically via `xchg byte ptr [r8 + 1], al` (`g_bF1PrevState` at `0x1425b1d21` in raw `.data`), toggling `g_bThirdPersonMode` at `0x1425b1d20`.
-4. **16-Byte Stack Alignment (`sub rsp, 0x20`):**
-   - The hook at `0x14093f357` is reached via `jmp 0x141f79ad0`, where `rsp % 16 == 0`.
-   - Microsoft x64 calling convention requires `rsp % 16 == 0` prior to any `call`.
-   - The initial draft used `sub rsp, 0x28` (40 bytes), misaligning `rsp` by 8 bytes (`rsp % 16 == 8`). When `CPlayer::SetThirdPerson` called downstream subroutines (`0x140704fd8`), an aligned vector store (`0x140705053: movaps xmmword ptr [rax - 0x18], xmm6`) caused a General Protection Fault (`#GP` / `0xC0000005`), crashing the game the moment F1 was pressed.
-   - Adjusting the allocation to `sub rsp, 0x20` (32 bytes = 4 quadwords shadow space) guarantees `rsp % 16 == 0` before both `GetAsyncKeyState` and `SetThirdPerson`. Callee entry receives `rsp % 16 == 8` and all nested calls and SIMD `movaps` instructions execute with 100% proper alignment.
-5. **Zero Overlap:** Fits in exactly 128 bytes (`0x80`), perfectly filling `0x141f79ad0` to `0x141f79b4f` without touching Patch #24B at `0x141f79b50`.
-6. **1st-Person Default:** Starts in 100% vanilla 1st-person (`g_bThirdPersonMode = 0` at `0x1425b1d20`). F1 toggles 3rd-person OTS on/off dynamically. In 3rd-person mode, Right-Click ADS toggle still snaps into 1st-person iron sights / scope aiming with native weapon 3D models and bullet impacts.
-
-### 2. Verification Hashes
-- **MD5:** `d1a6e03d2a0bc7640cb825271a67d2b4`
-- **SHA256:** `3c8c72bd243cdc34c7274df69de9e732c498ab0a3fc2e2a37947a3f92a0af786`
-
+- Character mesh transitions, 1P weapon rendering in ADS, and wall bullet impacts are fully preserved.
