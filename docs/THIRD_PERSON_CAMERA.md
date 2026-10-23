@@ -161,5 +161,5 @@ Replaces `mov rax, [rdx]; call [rax + 0x228]` with a direct jump to the transiti
 ## 5. Verification Checksums
 
 - **Vanilla Binary MD5:** `0326ea202fcd7ceb3760d14bc8d07f63`
-- **Fully Patched Binary MD5:** `0f382b402129aa207a4470d1f8d30756`
-- **Fully Patched Binary SHA256:** `fda44730ced4c4ed90aeba0d02cda725c66891caac9587f0d840c4c28d8b5a32`
+- **Fully Patched Binary MD5:** `d1a6e03d2a0bc7640cb825271a67d2b4`
+- **Fully Patched Binary SHA256:** `3c8c72bd243cdc34c7274df69de9e732c498ab0a3fc2e2a37947a3f92a0af786`
