@@ -2,7 +2,7 @@
 
 [![Platform: PC / Steam](https://img.shields.io/badge/Platform-PC%20%2F%20Steam%20(x86--64)-blue.svg)](#)
 [![Engine: CryEngine 3.8](https://img.shields.io/badge/Engine-CryEngine%203.8-red.svg)](#)
-[![Patches: 28 Applied](https://img.shields.io/badge/Patches-28%20Applied%20%2F%20Verified-brightgreen.svg)](#master-patch-matrix)
+[![Patches: 30 Applied](https://img.shields.io/badge/Patches-30%20Applied%20%2F%20Verified-brightgreen.svg)](#master-patch-matrix)
 [![Durability: Freedom Fighters](https://img.shields.io/badge/Durability-Freedom%20Fighters%20(2003)-orange.svg)](#)
 [![Guide: Installation](https://img.shields.io/badge/Guide-Installation%20(Win%20%2F%20Linux%20%2F%20Deck)-blueviolet.svg)](INSTALLATION.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -45,7 +45,7 @@ flowchart LR
 - **Freedom Fighters Combat Durability (Patch #19):** Grants followers 75% damage resistance (4x effective HP), allowing fighters to survive 12–15 assault rifle rounds rather than dropping instantly.
 - **Zero-Hesitation Combat Reaction (Patch #20):** Eliminates the artificial 2-second staring delay when AI encounters enemies outside cover; units engage and open fire within 150ms.
 - **Precision Guerrilla Marksmanship (Patch #21):** Neutralizes the game's artificial companion aim penalty; followers fire with true center-mass accuracy while retaining natural weapon physics and animation variation.
-- **Over-The-Shoulder Third-Person Camera & Dynamic Aiming (Patches #22–#25):** Traversal and hipfiring are rendered in a cinematic *Gears of War* over-the-shoulder 3rd-person perspective (+0.38m lateral right-shoulder offset, -0.18m elevation, 1.85m distance). Clicking Right-Click (vanilla toggle ADS) dynamically snaps into 1st-person iron sights / scope aiming with zero parallax and laser accuracy, snapping back to OTS 3rd-person on toggle-off. Smartphone hacking minigames automatically run in 1st person. Default unowned socket weapons on Ethan's mesh are cleanly suppressed.
+- **Over-The-Shoulder Third-Person Camera & Dynamic Contextual Aiming (Patches #22–#25B):** Traversal and hipfiring can be toggled into a cinematic *Gears of War* over-the-shoulder 3rd-person perspective (+0.38m lateral right-shoulder offset, -0.18m elevation, 1.85m distance). Features an in-game **F1/F3 hotkey toggle** (defaults to vanilla 1st-person upon launch/spawn). Automatically transitions dynamically to vanilla 1st person for: Right-Click ADS zoom (zero parallax & laser accuracy), sprint-sliding (Ctrl while sprinting), weapon customization (X key), smartphone opening (V key), tactical map (M key), and terminal/drone hacking minigames. Default unowned socket weapons on Ethan's mesh are cleanly suppressed.
 - **Urban Navigation & Choke Point Queueing (Patches #14 & #15):** Calibrates inter-agent personal space to 0.25m, allowing all 12 followers to stream through narrow 1.2m outpost doors without jamming.
 - **Tactical Cover Perimeter (Patches #11, #12 & #13):** Expands formation radius from 2m/3m to ~22m so 12 squad members fan out into distinct cover positions instead of collapsing into a clump.
 - **Target Memory & Rooftop Acquisition (Patches #17 & #18):** Extends sight-loss memory from 2s to 30s and enables infinite elevation sight, preventing the squad from ignoring rooftop snipers.
@@ -60,14 +60,14 @@ flowchart LR
 | **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
 | **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
 | **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
-| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `966612506e1e4781ecd49daf6a0a77d5` |
-| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `3f30f38bea87d9b50382b03cf3cffb58009ba59bf6e765a0353a1cd9563e52d2` |
+| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `b536426f8ae27559e2eb861596111e47` |
+| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `96e4771ed73827114f2db97a9f109ab93ca50aa20147e43e3c5f61eae067a0f2` |
 
 ---
 
 ## Quick Start & Patcher Usage
 
-The included Python CLI tool ([`patcher.py`](patcher.py)) applies all 21 patches with safety checks, automatic `.vanilla` backups, and verification.
+The included Python CLI tool ([`patcher.py`](patcher.py)) applies all 30 patches with safety checks, automatic `.vanilla` backups, and verification.
 
 ### 1. Verify Executable Status
 ```bash
@@ -121,11 +121,13 @@ All patches follow the **Zero-Data Modification Principle**: `.text` instruction
 | **#20B** | `cc_checkFrequency` | `0x1424aca10` | `0x24aa410` | `00 00 a0 40` (`5.0f`) | `cd cc 4c 3e` (**`0.2f`**) | Target state update rate: 0.2 Hz $\to$ 5.0 Hz |
 | **#20C** | `cc_reSeeTargetTime` | `0x1424aca20` | `0x24aa420` | `00 00 80 3f` (`1.0f`) | `cd cc cc 3d` (**`0.1f`**) | Line-of-sight re-acquisition: 1.0s $\to$ 100ms |
 | **#21** | Companion Aim Spread Neutralization | `0x140706327` | `0x705727` | `e8 34 0c fe ff f3 0f 58 47 08 f3 0f 11 47 08` | `83 67 04 00 83 67 08 00 90 90 90 90 90 90 90` | Clears artificial pitch & yaw miss offsets |
-| **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | `48 8b 02 ff 90 28 02 00 00` (9 B) | `e9 74 a7 63 01 90 90 90 90` (9 B) | Intercepts `CPlayerView::UpdateView` to trigger native `SetThirdPerson` on ADS toggle |
-| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 128$ (cave in `.text`) | Full dynamic transition stub (128 bytes) | Synchronizes character meshes, weapon slots (`0x140826318`), and muzzle firing helpers |
+| **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | `48 8b 02 ff 90 28 02 00 00` (9 B) | `e9 ec cd 63 01 90 90 90 90` (9 B) | Intercepts `CPlayerView::UpdateView` to trigger native `SetThirdPerson` on ADS, sliding, customize, phone/map, minigames |
+| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f7c148` | `0x1f7b148` | `00` $\times 180$ (cave in `PSFD00`) | Unified evaluator stub (180 B) | Evaluates F1/F3 mode, ADS zoom, sprint sliding, weapon customize (X), phone (V), map (M), and hacking minigames |
 | **#23** | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | `f3 0f 10 1d 86 f3 75 01` | `f3 0f 10 1d 0a fb 94 01` | Tightens camera distance: 3.5m $\to$ 1.85m |
 | **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | `8b 03 89 07 8b 43 04 89 47 04 ...` (16 B) | `e9 e2 a6 63 01 90 ...` (16 bytes) | Hooks view position commit in `CPlayerView::UpdateView` |
 | **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | `00` $\times 164$ (cave in `.text`) | Full SSE basis-vector calibration stub (164 B) | +0.38m lateral right-shoulder offset, -0.18m elevation |
+| **#25A** | `ThirdPerson_MsgPump_Hook` | `0x1402472ca` | `0x2466ca` | `48 8d 4c 24 30` (5 B) | `e9 01 28 d3 01` (5 B) | Hooks main CryEngine Win32 message pump right after `PeekMessageW` for F1/F3 hotkey |
+| **#25B** | `ThirdPerson_MsgPump_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 128$ (cave in `.text`) | Atomic F1/F3 hotkey toggle stub (128 B) | Toggles `g_bThirdPersonMode` at `0x1425b1d40` on non-repeating `WM_KEYDOWN` (`VK_F1` or `VK_F3`) |
 
 ---
 
@@ -147,7 +149,7 @@ During live combat testing in high-threat red zones:
 ## Architecture & Reverse Engineering Findings
 
 For detailed reverse engineering notes, decompilations, and mathematical formulas:
-- [`docs/REVERSE_ENGINEERING_NOTES.md`](docs/REVERSE_ENGINEERING_NOTES.md): Full chronological reverse engineering log (Phases 1–6).
+- [`docs/REVERSE_ENGINEERING_NOTES.md`](docs/REVERSE_ENGINEERING_NOTES.md): Full chronological reverse engineering log (Phases 1–12).
 - [`docs/COMBAT_AI_ARCHITECTURE.md`](docs/COMBAT_AI_ARCHITECTURE.md): Comprehensive analysis of CryEngine AI, EMD, DTP, and CoordinatedCombat.
 - [`include/`](include/): Reconstructed C++ header definitions (`DTP.h`, `CoordinatedCombat.h`, `GameRules.h`, `AICollisionAvoidance.h`, `VisionMap.h`, `SCVars.h`, `PlayerView.h`).
 
@@ -156,11 +158,15 @@ For detailed reverse engineering notes, decompilations, and mathematical formula
 ## Third-Person Over-the-Shoulder (OTS) Camera & Dynamic Aiming System
 
 CryEngine 3.8 in *Homefront: The Revolution* natively incorporates complete third-person camera and character mesh pipelines:
+- **In-Game F1 / F3 Toggle:** Seamlessly toggle between vanilla 1st-person and modded OTS 3rd-person at any point during gameplay without opening menus. Defaults to 100% vanilla 1st-person on launch or level load. Both `F1` and `F3` are supported (accommodating laptop Fn media keys).
 - **Cinematic OTS Traversal:** During walking, sprinting, and hipfiring, the viewpoint is calibrated to an action-tight *Gears of War* OTS perspective (+0.38m lateral right-shoulder offset, -0.18m elevation, 1.85m distance). Ethan Brady's full 3D character mesh renders seamlessly.
 - **Native Right-Click Toggle ADS Aiming:** When Right-Click is pressed (vanilla toggle ADS), the engine's internal zoom state (`[CPlayer + 0xaec] < 0.99f`) dynamically snaps perspective into vanilla 1st-person iron sights / scope aiming. Weapon lasers and sights align with zero parallax and laser-point precision. Clicking Right-Click again (toggle off) instantly snaps back to 3rd-person OTS.
-- **1st-Person Smartphone Minigames:** When Ethan interacts with strike terminals, drones, or radios, the evaluator detects the minigame state (`[CPlayer + 0x198] != 0`) and automatically switches to 1st person for 100% functional gameplay.
-- **Thread-Safe & Zero-Data:** Replaces `CPlayer::IsThirdPerson()` (`0x1406e1e0c`, Patches #22A & #22B) with a 100% read-only, branchless evaluator querying native CryEngine fields. Zero Win32 API calls, zero memory writes, 100% crash-proof under Wine/Proton.
-- **Holster Cleanup:** Suppresses unowned static default weapons on Ethan Brady's 3D mesh (`0x1406f5183`, Patch #25).
+- **Contextual In-Game Actions in 1st Person:**
+  - **Weapon Customization (X key):** Automatically transitions to 1st person when opening the modular weapon customization menu (`CMenuManager + 0x17d4 == 6`), ensuring full visibility of attachments and weapon conversions.
+  - **Sprint-Sliding (Ctrl while sprinting):** Automatically drops into 1st person when sliding (`[CPlayer + 0x1cd] & 2`), playing the full native slide animation, and seamlessly snaps back to 3rd person upon slide completion.
+  - **Smartphone (V key) & Map (M key):** Detected via `CSmartPhoneOS` (`0x14262ebf8 -> [0x420] + 0x78c`), cleanly displaying phone apps and map navigation in 1st person.
+  - **Hacking Minigames & Terminal Interactions:** Automatically runs strike terminal hacks, lockpicks, and drone controls in 1st person (`[CPlayer + 0x198] != 0` or interactive action flag `0x4000`).
+- **Thread-Safe & Zero-Data:** Main thread Win32 message pump hook intercepts `PeekMessageW` with atomic bitwise toggle. Read-only dynamic perspective evaluator runs in `PSFD00` code cave without memory allocations or risky API calls, maintaining 100% stability under Wine/Proton.
 
 See [`docs/THIRD_PERSON_CAMERA.md`](docs/THIRD_PERSON_CAMERA.md) for complete architectural analysis and assembly diffs.
 
@@ -172,7 +178,7 @@ See [`docs/THIRD_PERSON_CAMERA.md`](docs/THIRD_PERSON_CAMERA.md) for complete ar
 .
 ├── README.md                          # Master project documentation
 ├── LICENSE                            # MIT License
-├── patches.json                       # Machine-readable patch definitions (28 entries)
+├── patches.json                       # Machine-readable patch definitions (30 entries)
 ├── patcher.py                         # Standalone CLI binary patcher
 ├── docs/
 │   ├── REVERSE_ENGINEERING_NOTES.md  # Complete research notes (Phases 1–6)

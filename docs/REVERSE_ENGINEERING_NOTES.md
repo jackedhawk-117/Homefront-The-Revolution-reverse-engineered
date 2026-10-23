@@ -653,3 +653,89 @@ Following the deployment of Phase 11 (`b18da28dc96c31fc73f6f4807a27b251`), the g
   - **SHA256:** `3f30f38bea87d9b50382b03cf3cffb58009ba59bf6e765a0353a1cd9563e52d2`
 - **Patches Active:** 28/28 verified (Patches #1–#21, #22A, #22B, #23, #24A, #24B).
 - Character mesh transitions, 1P weapon rendering in ADS, and wall bullet impacts are fully preserved.
+
+
+---
+
+## Phase 12: Production-Grade F1/F3 Hotkey, In-Game Contextual Transitions (Weapon Customization, Phone, Map, Sliding), and 30-Patch Verification
+
+### 1. Technical Objectives & Architectural Requirements
+Starting from the stable baseline, three critical capabilities were integrated without compromising binary stability:
+1. **F1 / F3 Viewpoint Hotkey:** In-game keypress to toggle between vanilla 1st-person view and modded OTS 3rd-person view, defaulting to vanilla 1st-person on spawn or resume.
+2. **Contextual 1st-Person Perspective for Required In-Game Actions:** Dynamically switch into vanilla 1st-person using the native `CPlayer::SetThirdPerson` pipeline during:
+   - Modular weapon customization (pressing `X`)
+   - Smartphone interface (pressing `V`)
+   - Tactical map (pressing `M`)
+   - Strike terminal hacks, lockpicking, and drone control
+3. **Sprint-Sliding Dynamic Perspective Transition:** Native 3P character models lack a dedicated sliding animation. Sliding (`Ctrl` during sprint) must dynamically drop to 1st person, render the native sliding animation, and seamlessly snap back to 3rd person upon completion.
+
+### 2. Hotkey Implementation: Win32 Message Pump Interception
+- **Root Cause of `GetAsyncKeyState` Failure:**
+  In Wine/Proton under XWayland, `CPlayerView::UpdateView` runs on CryEngine's secondary **Render Thread**, whereas keyboard focus is maintained on the **Main Thread**. Polling via `GetAsyncKeyState` continuously returned 0.
+- **The Solution (Patches #25A & #25B):**
+  Intercept CryEngine's main Win32 message pump right after `PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)` at `0x1402472ca`:
+  - Hook at `0x1402472ca` (`5 bytes`, `e9 01 28 d3 01`) jumps to `ThirdPerson_MsgPump_Stub` at `0x141f79ad0` in `.text`.
+  - Stub inspects the message buffer at `[rsp + 0x30]`:
+    - `[rsp + 0x38] == 0x100` (`WM_KEYDOWN`)
+    - `[rsp + 0x40] == 0x70` (`VK_F1`) or `0x72` (`VK_F3`)
+    - `!([rsp + 0x4b] & 0x40)` (filters out key-hold repeat messages)
+  - Toggles `g_bThirdPersonMode` at `0x1425b1d40` via `xor byte ptr [rip + 0x63824a], 1`.
+  - Executes original instruction `lea rcx, [rsp + 0x30]` and jumps back to `TranslateMessage` at `0x1402472cf`.
+  - Zero heap allocation, zero Win32 API calls, 100% crash-proof.
+
+### 3. Unified Dynamic Perspective Evaluator (Patches #22A & #22B)
+- **Hook Location:** `0x14093f357` in `CPlayerView::UpdateView` (9 bytes: `e9 ec cd 63 01 90 90 90 90` $\to$ jumps to `0x141f7c148`).
+- **Stub Location:** `0x141f7c148` (file offset `0x1f7b148`) in section `PSFD00` (180 bytes).
+- **Evaluation Flow (`bl = 0` default, sets `bl = 1` only during traversal/hipfire):**
+  1. `cmp byte ptr [rip + 0x635bef], 1` (`g_bThirdPersonMode` at `0x1425b1d40`): If 0, forces 1st-person mode.
+  2. `cmp dword ptr [rdx + 0xaec], 0x3f7d70a4`: ADS zoom engaged ($< 0.99f$) $\to$ forces 1st person.
+  3. `test byte ptr [rdx + 0x1cd], 2`: Sprint sliding active (bit 9 of `[CPlayer + 0x1cc]`) $\to$ forces 1st person.
+  4. `cmp dword ptr [rdx + 0x198], 0`: Hacking minigame entity active $\to$ forces 1st person.
+  5. `test dword ptr [[[rdx + 0x1040] + 0x20] + 8], 0x4000`: Interactive action flag $\to$ forces 1st person.
+  6. `g_pGameFramework` (`0x14262ebf8`) $\to$ `CSmartPhoneOS* [rax + 0x420]` $\to$ `[rax + 0x78c] != 0`: Smartphone (V) or Map (M) open $\to$ forces 1st person.
+  7. `gEnv` (`0x14262eaf8`) $\to$ `CMenuManager* [rax + 0x1d0]` $\to$ `[rax + 0x17d4]`: Menu 6 (`WeaponCustomization`, X) or Menu 7 (`MerchantShop`) $\to$ forces 1st person.
+  8. If none triggered: `mov bl, 1` (OTS 3rd person).
+  9. If `[pPlayer + 0x1bd] != bl`: calls native `CPlayer::SetThirdPerson(bl)` at `0x14070e35c` with `sub rsp, 0x28` / `add rsp, 0x28` (maintaining x86-64 16-byte stack alignment).
+  10. Returns `al = bl` and jumps back to `0x14093f360`.
+
+### 4. Active Binary Patch Table (30 Patches Total)
+
+| Patch # | Parameter / Component | Target VA | File Offset | Vanilla Bytes | Patched Bytes | Impact Summary |
+| :---: | :--- | :---: | :---: | :--- | :--- | :--- |
+| **#1** | `emd_softAgentLimit` | `0x14036ab29` | `0x369f29` | `f3 0f 10 05 8b 38 ca 01` | `f3 0f 10 05 cf f5 e6 01` | Soft active AI cap: 24 $\to$ 96 |
+| **#2** | `emd_spreadSoftAgentLimit` | `0x14036ab62` | `0x369f62` | `f3 0f 10 05 1a d9 d6 01` | `f3 0f 10 05 4e de c7 01` | Spatial grid density ceiling: 60 $\to$ 150 |
+| **#3** | `emd_hardAgentLimit` | `0x14036ab9b` | `0x369f9b` | `f3 0f 10 05 19 37 ca 01` | `f3 0f 10 05 15 de c7 01` | Hard world AI ceiling: 64 $\to$ 150 |
+| **#4** | `emd_repopulateDelay` | `0x14036ac75` | `0x36a075` | `f3 0f 10 05 8b 36 c6 01` | `f3 0f 10 05 fb 2b c4 01` | Cell repopulation delay: 100s $\to$ 5s |
+| **#5** | `emd_escortReinforcements_retry` | `0x14036a29d` | `0x36969d` | `f3 0f 10 05 d2 35 c4 01` | `f3 0f 10 05 f6 92 c5 01` | Reinforcement retry delay: 5.0s $\to$ 2.5s |
+| **#6** | `emd_gridActiveRadius` | `0x14036a664` | `0x369a64` | `f3 0f 10 05 5c e6 cb 01` | `f3 0f 10 05 50 49 c4 01` | Active player radius: 40m $\to$ 80m |
+| **#7** | `emd_perFrameSpawnLimit` | `0x14036a4f5` | `0x3698f5` | `41 8d 6c 24 01` | `41 8d 6c 24 04` | Spawns full 4-man fireteams in 1 frame |
+| **#8** | `g_dynamicPatrol_maxPatrols` | `0x1408449f0` | `0x843df0` | `bf 02 00 00 00` | `bf 08 00 00 00` | Max concurrent patrols: 2 $\to$ 8 |
+| **#9** | `g_dynamicPatrol_SoldierPresence` | `0x140844a26` | `0x843e26` | `f3 0f 10 0d 0a 81 77 01` | `f3 0f 10 0d 4a 8e 76 01` | Patrol troop presence: 2.22 $\to$ 5.0 |
+| **#10** | `dtp_maxAgents` | `0x140886f8d` | `0x88638d` | `41 b9 04 00 00 00` | `41 b9 0c 00 00 00` | Follower recruitment limit: 4 $\to$ 12 |
+| **#11** | `formation_minRadius` | `0x1405caf68` | `0x5ca368` | `f3 44 0f 10 2d 2f 00 a9 01` | `f3 44 0f 10 2d 4f 00 a9 01` | Combat formation inner ring: 2m $\to$ 5m |
+| **#12** | `formation_spacingScalar` | `0x1405cb005` | `0x5ca405` | `f3 44 0f 59 0d 96 ff a8 01` | `f3 44 0f 59 0d b2 ff a8 01` | Combat outer perimeter: 12m $\to$ 22m |
+| **#13** | `travel_follow_radius` | `0x1405c29ff` | `0x5c1dff` | `f3 0f 10 1d 99 85 a9 01` | `f3 0f 10 1d b9 85 a9 01` | Non-combat travel follow distance: 2m $\to$ 5m |
+| **#14** | `ai_CollisionAvoidanceAgentExtraFat` | `0x140dcbc25` | `0xdcb025` | `f3 0f 10 1d 77 c2 1e 01` | `f3 0f 10 1d f9 b4 1d 01` | Doorway personal space: 0.025m $\to$ 0.25m |
+| **#15** | `ai_CollisionAvoidanceTargetCutoffRange`| `0x140dcbb96` | `0xdcaf96` | `f3 0f 10 1d d6 12 22 01` | `f3 0f 10 1d 52 08 1e 01` | Avoidance cutoff near player: 3m $\to$ 0m |
+| **#16** | `dtp_leaveRange` | `0x140886ee9` | `0x8862e9` | `f3 0f 10 1d 33 11 84 01` | `f3 0f 10 1d 3f 69 83 01` | Follower tether leash: 100m $\to$ 250m |
+| **#17** | `CoordinatedCombatTarget_Timeout` | `0x1405c5275` | `0x5c4675` | `0f 2f 05 74 77 ee 01` | `0f 2f 05 78 77 ee 01` | Target memory retention: 2s $\to$ 30s |
+| **#18** | `ai_InfiniteSightWhenAlerted` | `0x140dcb7e5` | `0xdcabe5` | `45 33 c9 c7 44 24 20 02 00 00 00` | `41 b9 01 00 00 00 c6 44 24 20 02` | Removes pitch/elevation vision cutoffs |
+| **#19** | Friendly Squad Damage Resistance | `0x1405d76ba` | `0x5d6aba` | `84 c9 74 63 ...` (56 bytes) | `38 44 24 28 74 32 ...` (56 bytes) | Grants followers 75% damage resistance |
+| **#20A** | `cc_isHostileCheckTime` | `0x1424aca00` | `0x24aa400` | `00 00 80 3f` (`1.0f`) | `cd cc cc 3d` (**`0.1f`**) | Target hostility check window: 1.0s $\to$ 100ms |
+| **#20B** | `cc_checkFrequency` | `0x1424aca10` | `0x24aa410` | `00 00 a0 40` (`5.0f`) | `cd cc 4c 3e` (**`0.2f`**) | Target state update rate: 0.2 Hz $\to$ 5.0 Hz |
+| **#20C** | `cc_reSeeTargetTime` | `0x1424aca20` | `0x24aa420` | `00 00 80 3f` (`1.0f`) | `cd cc cc 3d` (**`0.1f`**) | Line-of-sight re-acquisition: 1.0s $\to$ 100ms |
+| **#21** | Companion Aim Spread Neutralization | `0x140706327` | `0x705727` | `e8 34 0c fe ff f3 0f 58 47 08 f3 0f 11 47 08` | `83 67 04 00 83 67 08 00 90 90 90 90 90 90 90` | Clears artificial pitch & yaw miss offsets |
+| **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | `48 8b 02 ff 90 28 02 00 00` (9 B) | `e9 ec cd 63 01 90 90 90 90` (9 B) | Intercepts `CPlayerView::UpdateView` to jump to unified perspective evaluator |
+| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f7c148` | `0x1f7b148` | `00` $\times 180$ (cave in `PSFD00`) | Unified perspective evaluator stub (180 B) | Evaluates F1/F3 mode, ADS zoom, sprint sliding, weapon customize (X), phone (V), map (M), hacking minigames |
+| **#23** | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | `f3 0f 10 1d 86 f3 75 01` | `f3 0f 10 1d 0a fb 94 01` | Tightens camera distance: 3.5m $\to$ 1.85m |
+| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | `8b 03 89 07 8b 43 04 89 47 04 ...` (16 B) | `e9 e2 a6 63 01 90 ...` (16 bytes) | Hooks view position commit in `CPlayerView::UpdateView` |
+| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | `00` $\times 164$ (cave in `.text`) | Full SSE basis-vector calibration stub (164 B) | +0.38m lateral right-shoulder offset, -0.18m elevation |
+| **#25A** | `ThirdPerson_MsgPump_Hook` | `0x1402472ca` | `0x2466ca` | `48 8d 4c 24 30` (5 B) | `e9 01 28 d3 01` (5 B) | Hooks main CryEngine Win32 message pump right after `PeekMessageW` |
+| **#25B** | `ThirdPerson_MsgPump_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 128$ (cave in `.text`) | Atomic F1/F3 hotkey toggle stub (128 B) | Toggles `g_bThirdPersonMode` at `0x1425b1d40` on non-repeating `WM_KEYDOWN` (`VK_F1` or `VK_F3`) |
+
+### 5. Status & Deployment
+- **Status:** **APPLIED & VERIFIED ACROSS ALL TARGETS (30/30 Patches Active)**
+  - Local rework target: `/home/jackedhawk117/rework/Homefront2_Release.exe`
+  - Steam production target: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
+  - **Verified Patched MD5:** `b536426f8ae27559e2eb861596111e47`
+  - **Verified Patched SHA256:** `96e4771ed73827114f2db97a9f109ab93ca50aa20147e43e3c5f61eae067a0f2`
