@@ -195,5 +195,5 @@ To reliably toggle perspective across Linux/Wine/Proton without polling broken W
 ## 6. Verification Checksums
 
 - **Vanilla Binary MD5:** `0326ea202fcd7ceb3760d14bc8d07f63`
-- **Fully Patched Binary MD5:** `b18da28dc96c31fc73f6f4807a27b251`
-- **Fully Patched Binary SHA256:** `867953c900199fb71686e2672d14da8774429133874261022d61a575887b9f56`
+- **Fully Patched Binary MD5:** `8fe9c11239db8041c19a02b364a3b47f`
+- **Fully Patched Binary SHA256:** `6e04796a7153abb0c99b1eae99eb4c642b67a4dd014ae21ec10cda37ee384d29`

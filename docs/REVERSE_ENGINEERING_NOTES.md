@@ -583,14 +583,26 @@ To strictly uphold the **Zero-Data Modification Principle** (0 bytes altered in 
    .check_key:
    0x141f7c160: cmp r8d, 0x70                    ; VK_F1?
    0x141f7c164: jne .orig
-   0x141f7c166: test r9d, 0x40000000             ; Check bit 30 (autorepeat filter)
-   0x141f7c16d: jne .orig
+   0x141f7c160: test r9d, 0x40000000             ; Check bit 30 (autorepeat filter)
+   0x141f7c167: jne .orig
+   0x141f7c169: cmp r8d, 0x70                    ; VK_F1
+   0x141f7c16d: jne .check_actions
    0x141f7c16f: lock xor byte ptr [rip + 0x2083e89], 1  ; Atomically toggle [0x144000000] (0 <-> 1)
+   0x141f7c177: jmp .orig
+   .check_actions:
+   0x141f7c179: cmp r8d, 0x4d                    ; VK_M (Map)
+   0x141f7c17d: je .force_1p
+   0x141f7c17f: cmp r8d, 0x58                    ; VK_X (Weapon Customization)
+   0x141f7c183: je .force_1p
+   0x141f7c185: cmp r8d, 0x56                    ; VK_V (Smartphone)
+   0x141f7c189: jne .orig
+   .force_1p:
+   0x141f7c18b: mov byte ptr [rip + 0x2083e6e], 0       ; Switch to 1P ([0x144000000] = 0)
    .orig:
-   0x141f7c177: mov qword ptr [rsp + 8], rbx     ; Replaced original prologue
-   0x141f7c17c: mov qword ptr [rsp + 0x10], rbp
-   0x141f7c181: mov qword ptr [rsp + 0x18], rsi
-   0x141f7c186: jmp 0x1402494c7                  ; Return to WndProc (push rdi)
+   0x141f7c192: mov qword ptr [rsp + 8], rbx     ; Replaced original prologue
+   0x141f7c197: mov qword ptr [rsp + 0x10], rbp
+   0x141f7c19c: mov qword ptr [rsp + 0x18], rsi
+   0x141f7c1a1: jmp 0x1402494c7                  ; Return to WndProc (push rdi)
    ```
 
 ### 4. Dynamic Perspective Transition Evaluator Integration
@@ -615,11 +627,11 @@ In `ThirdPerson_DynamicTransition_Stub` at `0x141f79ad0` (Patch #22B, 128 Bytes)
 | **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e9e2a6630190...` | Intercepts view commit in `CPlayerView::UpdateView` |
 | **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | 164 B | `00` $\times 164$ | `f30f104308f3...` | Applies $+0.38\text{m}$ Right-vector offset and $-0.18\text{m}$ elevation (*Gears of War* OTS) |
 | **#25A** | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | 15 B | `48895c240848896c24104889742418` | `e9932cd30190909090909090909090` | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
-| **#25B** | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 59 B | `00` $\times 59$ | `81fa00010000740881fa04010000...` | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN` for VK_F1, filters autorepeat, and toggles `g_thirdPersonEnabled` |
+| **#25B** | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 86 B | `00` $\times 86$ | `81fa00010000740881fa04010000...` | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN`: toggles on VK_F1, forces 1P on M (Map), X (Customize), or V (Phone) |
 
 ### 6. Status & Deployment
 - **Status:** **APPLIED & DEPLOYED TO STEAM**
   - Working binary: `/home/jackedhawk117/rework/Homefront2_Release.exe`
   - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
-  - **New Patched MD5:** `b18da28dc96c31fc73f6f4807a27b251`
-  - **New Patched SHA256:** `867953c900199fb71686e2672d14da8774429133874261022d61a575887b9f56`
+  - **New Patched MD5:** `8fe9c11239db8041c19a02b364a3b47f`
+  - **New Patched SHA256:** `6e04796a7153abb0c99b1eae99eb4c642b67a4dd014ae21ec10cda37ee384d29`

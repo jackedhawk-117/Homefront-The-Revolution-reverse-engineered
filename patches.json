@@ -1,8 +1,8 @@
 {
   "target_binary": "Homefront2_Release.exe",
   "vanilla_md5": "0326ea202fcd7ceb3760d14bc8d07f63",
-  "patched_md5": "966612506e1e4781ecd49daf6a0a77d5",
-  "total_patches": 28,
+  "patched_md5": "8fe9c11239db8041c19a02b364a3b47f",
+  "total_patches": 30,
   "patches": [
     {
       "id": "1",
@@ -357,13 +357,13 @@
       "name": "WndProc_F1_Stub",
       "va": "0x141f7c150",
       "offset": 33010000,
-      "size": 59,
+      "size": 86,
       "category": "Third-Person Camera",
-      "desc": "Evaluates WM_KEYDOWN / WM_SYSKEYDOWN for VK_F1, filters autorepeat, and toggles g_thirdPersonEnabled",
-      "original_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-      "patched_hex": "81fa00010000740881fa0401000075174183f870751141f7c1000000407508f08035893e08020148895c240848896c24104889742418e93cd32cfe",
+      "desc": "Evaluates WM_KEYDOWN / WM_SYSKEYDOWN: toggles g_thirdPersonEnabled on VK_F1, and forces 1P on M (Map), X (Customize), or V (Phone)",
+      "original_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "patched_hex": "81fa00010000740881fa04010000753241f7c10000004075294183f870750af08035893e080201eb194183f84d740c4183f85874064183f8567507c6056e3e08020048895c240848896c24104889742418e921d32cfe",
       "file_offset_hex": "0x1f7b150"
     }
   ],
-  "patched_sha256": "867953c900199fb71686e2672d14da8774429133874261022d61a575887b9f56"
+  "patched_sha256": "6e04796a7153abb0c99b1eae99eb4c642b67a4dd014ae21ec10cda37ee384d29"
 }
