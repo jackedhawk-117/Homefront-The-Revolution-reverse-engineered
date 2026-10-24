@@ -629,9 +629,54 @@ In `ThirdPerson_DynamicTransition_Stub` at `0x141f79ad0` (Patch #22B, 128 Bytes)
 | **#25A** | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | 15 B | `48895c240848896c24104889742418` | `e9932cd30190909090909090909090` | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
 | **#25B** | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 86 B | `00` $\times 86$ | `81fa00010000740881fa04010000...` | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN`: toggles on VK_F1, forces 1P on M (Map), X (Customize), or V (Phone) |
 
-### 6. Status & Deployment
+---
+
+## Phase 12: Camera Collision, Crouch Cover Fix & Motorcycle Third-Person View (October 24, 2026)
+
+### 1. Physics-Based Camera Raycast Collision (`RayWorldIntersection`)
+- **Problem:** When backing into walls or maneuvering in tight interiors, the third-person OTS camera clipped through geometry into void space.
+- **Solution:** Integrated CryEngine's native `RayWorldIntersection` wrapper (`0x140071e90`) querying global `pPhysicalWorld` (`0x1424790e8`).
+  - Ray origin: Ethan's shoulder pivot (`cam_target - dir`).
+  - Ray direction: Camera arm vector (`-forward * 1.85f + (0, 0, -0.18f)`).
+  - Skips player physics entity (`pPlayer->GetEntity()->GetPhysics()`) to prevent self-collision.
+  - When world geometry is struck (`hit.dist < 1.85f`), pulls camera forward to `max(0.20m, hit.dist - 0.22m)`.
+  - Preserves all 10 non-volatile XMM registers (`xmm6..xmm15`) and guarantees 16-byte stack alignment.
+
+### 2. Low Cover / Crouch Auto-Switch Neutralization
+- **Root Cause 1:** `ThirdPerson_DynamicTransition_Stub` (Patch #22B) checked `cmp ecx, 0x3f7d70a4` (`0.99f`). When crouching near low cover, CryEngine slightly altered FOV (~0.97f), causing the engine to interpret cover peeking as ADS zoom and dropping Ethan to 1P. Lowering the threshold to `0x3f6147ae` (`0.88f`) preserves 3P during traversal, low cover, and blindfiring, while allowing actual Right-Click ADS (<= 0.84f iron sights) to cleanly drop to 1P.
+- **Root Cause 2:** In `FUN_14093a590` at `0x14093a5fe`, `cmp byte ptr [rcx + 0x50], 0` followed by `je 0x14093a60a` called `CPlayer::SetThirdPerson(pPlayer, 0)` upon entering cover. Patch #26 (`ThirdPerson_CoverOverride_Bypass`) replaces `74 0a` with `eb 0a` (`jmp 0x14093a60a`), neutralizing this forced 1P drop.
+
+### 3. Motorcycle Third-Person View & Dynamic Vehicle Perspective
+- **Location:** Vehicle view dispatch at VA `0x14093a635` (`call qword ptr [r9 + 0x120]; jmp 0x14093abd2`).
+- **Hook (Patch #27A, 12 Bytes):** Jumps to `Motorcycle_Perspective_Stub` in `PSFD00` dead code area (`0x141f7aa00`).
+- **Functionality (Patch #27B, 1010 Bytes):**
+  - Executes original `pVehicle->UpdateView` to obtain driver head position and mouse-look rotation quaternion.
+  - When `g_thirdPersonEnabled == 1`:
+    - Calls `CPlayer::SetThirdPerson(pPlayer, 1)` (`0x14070e35c`) so Ethan's full 3D body renders on the bike.
+    - Offsets camera 2.60m backwards and +0.75m upwards relative to driver mouse look.
+    - Performs raycast collision via `RayWorldIntersection` against world geometry, skipping the player physics entity.
+  - When `g_thirdPersonEnabled == 0`:
+    - Calls `CPlayer::SetThirdPerson(pPlayer, 0)` and maintains clean vanilla 1P driver view.
+    - Pressing `M` (Map), `X` (Weapon Customize), or `V` (Phone) automatically drops perspective to 1P via `WndProc_F1_Stub`.
+
+### 4. Active Binary Patch Table (33 Patches Total)
+
+| Patch # | Parameter / Component | Instruction VA | File Offset | Size | Original Bytes | Patched Bytes | Purpose |
+| :---: | :--- | :---: | :---: | :---: | :--- | :--- | :--- |
+| **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | 9 B | `488b02ff9028020000` | `e974a7630190909090` | Intercepts `UpdateView` to trigger native `SetThirdPerson` on ADS toggle and minigames |
+| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | `00` $\times 128$ | `4885d2747580ba9c02000000...` | Evaluates F1 hotkey toggle, ADS zoom (0.88f threshold preserves cover-peek 3P), and minigames |
+| **#23** | `cl_tpvDist` | `0x1408a481a` | `0x8a3c1a` | 8 B | `f30f101d86f37501` | `f30f101d0afb9401` | Tightens camera distance from 3.5m to 1.85m action perspective |
+| **#24A** | `ThirdPerson_CameraCollision_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e992b1630190...` | Intercepts view commit in `CPlayerView::UpdateView` to jump to raycast collision solver |
+| **#24B** | `ThirdPerson_CameraCollision_Stub` | `0x141f7a600` | `0x1f79600` | 1008 B | Vanilla `PSFD00` bytes | Full collision solver stub | Computes OTS offset and performs `RayWorldIntersection` against world geometry |
+| **#25A** | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | 15 B | `48895c240848896c24104889742418` | `e9932cd30190909090909090909090` | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
+| **#25B** | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 86 B | `00` $\times 86$ | `81fa00010000740881fa04010000...` | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN`: toggles on VK_F1, forces 1P on M (Map), X (Customize), or V (Phone) |
+| **#26** | `ThirdPerson_CoverOverride_Bypass` | `0x14093a5fe` | `0x9399fe` | 2 B | `740a` | `eb0a` | Neutralizes cover 1P override in `FUN_14093a590`, keeping 3P active near waist-high cover |
+| **#27A** | `Motorcycle_Perspective_Hook` | `0x14093a635` | `0x939a35` | 12 B | `41ff9120010000e991050000` | `e9c603640190909090909090` | Hooks vehicle view dispatch in `FUN_14093a590` to enable third-person motorcycle perspective |
+| **#27B** | `Motorcycle_Perspective_Stub` | `0x141f7aa00` | `0x1f79a00` | 1010 B | Vanilla `PSFD00` bytes | Full motorcycle 3P stub | Renders player character on bike, calculates 2.60m chase cam, mouse-look rotation, and raycast collision |
+
+### 5. Status & Deployment
 - **Status:** **APPLIED & DEPLOYED TO STEAM**
   - Working binary: `/home/jackedhawk117/rework/Homefront2_Release.exe`
   - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
-  - **New Patched MD5:** `8fe9c11239db8041c19a02b364a3b47f`
-  - **New Patched SHA256:** `6e04796a7153abb0c99b1eae99eb4c642b67a4dd014ae21ec10cda37ee384d29`
+  - **New Patched MD5:** `5e95dc48aef9731a89d507badf9049e3`
+  - **New Patched SHA256:** `161953fc6cc7525bc01a17567f9fe66d611986e37f667652e12f39cb78a2ee8d`
