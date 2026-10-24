@@ -662,19 +662,18 @@ In `ThirdPerson_DynamicTransition_Stub` at `0x141f79ad0` (Patch #22B, 128 Bytes)
 | Patch # | Parameter / Component | Instruction VA | File Offset | Size | Original Bytes | Patched Bytes | Purpose |
 | :---: | :--- | :---: | :---: | :---: | :--- | :--- | :--- |
 | **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | 9 B | `488b02ff9028020000` | `e974a7630190909090` | Intercepts `UpdateView` to trigger native `SetThirdPerson` on ADS toggle and minigames |
-| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | `00` $\times 128$ | `4885d2747580ba9c02000000...` | Evaluates F1 hotkey toggle, ADS zoom (0.88f threshold preserves cover-peek 3P), and minigames |
+| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | `00` $\times 128$ | `4885d2747580ba9c02000000...` | Evaluates F1 hotkey toggle, ADS zoom (0.85f threshold preserves sprint, slide, crouch, and cover-peek 3P), and minigames |
 | **#23** | `cl_tpvDist` | `0x1408a481a` | `0x8a3c1a` | 8 B | `f30f101d86f37501` | `f30f101d0afb9401` | Tightens camera distance from 3.5m to 1.85m action perspective |
-| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e9e2a6630190...` | Intercepts view commit in `CPlayerView::UpdateView` to calibrate OTS perspective |
-| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | 164 B | `00` $\times 164$ | `f30f104308f3...` | Calculates +0.38m lateral right-shoulder offset and lowers elevation by -0.18m (Gears of War OTS) |
+| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e992ab630190...` | Intercepts view commit in `CPlayerView::UpdateView` to dispatch unified on-foot OTS and motorcycle 3P chase view |
+| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f7a000` | `0x1f79000` | 1241 B | Vanilla `PSFD00` bytes | Full camera & raycast stub (1241 B) | Unified OTS on-foot (+0.38m lateral, -0.18m elevation), motorcycle chase (2.80m, +0.65m elevation), and raycast collision against walls/ceilings |
 | **#25A** | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | 15 B | `48895c240848896c24104889742418` | `e9932cd30190909090909090909090` | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
 | **#25B** | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 86 B | `00` $\times 86$ | `81fa00010000740881fa04010000...` | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN`: toggles on VK_F1, forces 1P on M (Map), X (Customize), or V (Phone) |
 | **#26** | `ThirdPerson_CoverOverride_Bypass` | `0x14093a5fe` | `0x9399fe` | 2 B | `740a` | `eb0a` | Neutralizes cover 1P override in `FUN_14093a590`, keeping 3P active near waist-high cover |
-| **#27A** | `Motorcycle_Perspective_Hook` | `0x14093a635` | `0x939a35` | 12 B | `41ff9120010000e991050000` | `e9c603640190909090909090` | Hooks vehicle view dispatch in `FUN_14093a590` to enable third-person motorcycle perspective |
-| **#27B** | `Motorcycle_Perspective_Stub` | `0x141f7aa00` | `0x1f79a00` | 406 B | `1b741db90500...` | Full motorcycle 3P stub (406 B) | Renders player character on bike, calculates 2.60m chase cam with 0.75m elevation, and mouse-look rotation |
+| **#28** | `Weapon_ThirdPersonFireSlot_Bypass` | `0x14082fe04` | `0x82f204` | 2 B | `7516` | `9090` | Bypasses IsClient 1P slot override in `CWeapon::GetSlot`, enabling weapon firing and blindfire from low cover in 3P |
 
 ### 5. Status & Deployment
 - **Status:** **APPLIED & DEPLOYED TO STEAM**
   - Working binary: `/home/jackedhawk117/rework/Homefront2_Release.exe`
   - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
-  - **New Patched MD5:** `7d9b421dc67bdf6225d9b33f36e6f596`
-  - **New Patched SHA256:** `2f1d5142c2953d6ac470173d9ed5b71b1d7b53bf958167ff8916f683f0a118ad`
+  - **New Patched MD5:** `d0d295460ee9c2e0d9373344eca62dbf`
+  - **New Patched SHA256:** `70466f937e2c0531d6b77916fe94a69aa8d130e87fe34e84792eb440401e385d`

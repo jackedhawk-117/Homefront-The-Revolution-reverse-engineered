@@ -188,37 +188,42 @@ To reliably toggle perspective across Linux/Wine/Proton without polling broken W
 - **Root Cause 1:** In `ThirdPerson_DynamicTransition_Stub` (Patch #22B), the zoom threshold `cmp ecx, 0x3f7d70a4` (0.99f) treated subtle cover-peeking FOV changes (~0.97f) as ADS zoom. Lowering the threshold to `0x3f6147ae` (0.88f) allows cover-peeking and blindfiring to stay cleanly in third person while preserving instant 1P drop on true Right-Click ADS (<= 0.84f iron sights, <= 0.50f scopes).
 - **Root Cause 2:** In `FUN_14093a590` at `0x14093a5fe`, `cmp byte ptr [rcx + 0x50], 0` followed by `je 0x14093a60a` called `CPlayer::SetThirdPerson(pPlayer, 0)` on entering cover. Patch #26 (`ThirdPerson_CoverOverride_Bypass`) replaces `74 0a` with `eb 0a` (`jmp 0x14093a60a`), completely eliminating forced 1P override.
 
-### C. Motorcycle Third-Person Perspective & Chase Camera
-- Vehicle view dispatch at `0x14093a635` is hooked via Patch #27A (`jmp Motorcycle_Perspective_Stub` at `0x141f7aa00`).
-- Executes original vehicle `UpdateView(rdi, r8d)` to obtain driver head position and mouse-look rotation quaternion.
-- When `g_thirdPersonEnabled == 1`:
-  - Calls `CPlayer::SetThirdPerson(pPlayer, 1)` (`0x14070e35c`) to render Ethan's full 3D body on the motorcycle.
-  - Offsets the camera 2.60m backwards and +0.75m upwards relative to driver mouse-look rotation (`[rdi + 0x1c..0x28]` and `[rdi + 0x2c..0x34]`).
-- When `g_thirdPersonEnabled == 0`:
-  - Calls `CPlayer::SetThirdPerson(pPlayer, 0)` and maintains clean vanilla 1st-person motorcycle perspective.
-  - Pressing `M` (Map), `X` (Weapon Customize), or `V` (Phone) auto-switches to 1P via `WndProc_F1_Stub`.
+### C. Unified Camera & Motorcycle Third-Person Chase Perspective with Raycast Collision
+- The camera position commit in `CPlayerView::UpdateView` (`0x14093f469`) is hooked via Patch #24A (`jmp ThirdPerson_CameraOTS_Stub` at `0x141f7a000`).
+- Checks `pPlayer->GetLinkedVehicle()` (`[pPlayer->vtable + 0x318]`):
+  - **On Motorcycle (`pVehicle != NULL`):**
+    - Ensures `CPlayer::SetThirdPerson(pPlayer, 1)` (`0x14070e35c`) is called so Ethan Brady's full 3D body renders seated on the bike.
+    - Computes a 2.80m chase camera offset with +0.65m elevation centered behind the motorcycle.
+  - **On Foot (`pVehicle == NULL`):**
+    - Calculates an action-tight Gears of War over-the-right-shoulder (OTS) camera (+0.38m lateral right, -0.18m elevation).
+- **Camera Wall & Ceiling Collision Detection:**
+  - Evaluates `RayWorldIntersection` (`0x140071e90`) against static geometry, terrain, and rigid props (`0x8011f`) using `gEnv->pPhysicalWorld` (`0x1424790e8`).
+  - Originates from the player's head pivot and extends towards the desired camera viewpoint.
+  - On hit, smoothly clamps camera distance with safe margin buffers, preventing the camera from clipping into walls, ceilings, doorways, or tunnels.
+- **Weapon Firing & Blindfire Resolution (Patch #28):**
+  - In `CWeapon::GetSlot` at `0x14082fe04`, NOPs the client 1P override (`75 16` $\to$ `90 90`).
+  - Forces the client player to evaluate `IActor::IsThirdPerson()`, returning Slot 1 (`eIGS_ThirdPerson`) during 3P traversal, hipfire, and blindfire from low cover.
 
 ---
 
-## 6. Active Binary Patch Table (33 Patches Total)
+## 6. Active Binary Patch Table (32 Patches Total)
 
 | Patch Name | Virtual Address | File Offset | Size | Purpose |
 | :--- | :--- | :--- | :---: | :--- |
 | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | 9 B | Intercepts `CPlayerView::UpdateView` to trigger native `SetThirdPerson` on ADS toggle and minigames |
-| `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | Evaluates F1 hotkey toggle, ADS zoom (0.88f threshold preserves cover-peek 3P), and minigames; triggers native transitions |
+| `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | Evaluates F1 hotkey toggle, ADS zoom (0.85f threshold preserves sprint, slide, crouch, and cover-peek 3P), and minigames |
 | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | 8 B | Tightens camera distance from 3.5m to 1.85m action perspective |
-| `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | Hooks view commit in `CPlayerView::UpdateView` to calibrate OTS perspective |
-| `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | 164 B | Calculates +0.38m lateral right-shoulder offset and lowers elevation by -0.18m |
+| `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | Hooks view commit in `CPlayerView::UpdateView` to dispatch unified on-foot OTS and motorcycle 3P chase view |
+| `ThirdPerson_CameraOTS_Stub` | `0x141f7a000` | `0x1f79000` | 1241 B | Unified camera stub: +0.38m lateral OTS on-foot, 2.80m chase on motorcycle, and raycast collision detection with safe distance clamping |
 | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | 15 B | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
 | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 86 B | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN`: toggles on VK_F1, forces 1P on M (Map), X (Customize), or V (Phone) |
 | `ThirdPerson_CoverOverride_Bypass` | `0x14093a5fe` | `0x9399fe` | 2 B | Neutralizes cover 1P override in `FUN_14093a590`, keeping 3P active near waist-high cover |
-| `Motorcycle_Perspective_Hook` | `0x14093a635` | `0x939a35` | 12 B | Hooks vehicle view dispatch in `FUN_14093a590` to enable third-person motorcycle perspective |
-| `Motorcycle_Perspective_Stub` | `0x141f7aa00` | `0x1f79a00` | 406 B | Renders player character on bike, calculates 2.60m chase cam with 0.75m elevation, and mouse-look rotation |
+| `Weapon_ThirdPersonFireSlot_Bypass` | `0x14082fe04` | `0x82f204` | 2 B | Bypasses IsClient 1P slot override in `CWeapon::GetSlot`, enabling weapon firing and blindfire from low cover in 3P |
 
 ---
 
 ## 7. Verification Checksums
 
 - **Vanilla Binary MD5:** `0326ea202fcd7ceb3760d14bc8d07f63`
-- **Fully Patched Binary MD5:** `7d9b421dc67bdf6225d9b33f36e6f596`
-- **Fully Patched Binary SHA256:** `2f1d5142c2953d6ac470173d9ed5b71b1d7b53bf958167ff8916f683f0a118ad`
+- **Fully Patched Binary MD5:** `d0d295460ee9c2e0d9373344eca62dbf`
+- **Fully Patched Binary SHA256:** `70466f937e2c0531d6b77916fe94a69aa8d130e87fe34e84792eb440401e385d`
