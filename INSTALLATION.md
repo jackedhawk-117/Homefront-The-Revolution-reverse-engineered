@@ -11,9 +11,13 @@ This guide provides step-by-step instructions on how to install, verify, and uni
    - [Windows (CMD / PowerShell)](#windows-cmd--powershell)
    - [Linux / Proton](#linux--proton)
    - [Steam Deck](#steam-deck)
-4. [Method 2: Manual Replacement (If Sent Pre-Patched EXE)](#method-2-manual-replacement-if-sent-pre-patched-exe)
+4. [Choosing Your Installation Profile](#choosing-your-installation-profile)
+   - [Profile 1: Core Squad & Guerrilla Overhaul (Stable / Default)](#profile-1-core-squad--guerrilla-overhaul-stable--default)
+   - [Profile 2: Full Overhaul with Third-Person Camera (Optional / Experimental)](#profile-2-full-overhaul-with-third-person-camera-optional--experimental)
 5. [In-Game Verification Checklist](#in-game-verification-checklist)
-6. [How to Revert to Vanilla](#how-to-revert-to-vanilla)
+6. [How to Revert or Switch Modes](#how-to-revert-or-switch-modes)
+   - [Revert Third-Person Camera Only (Keep Squad Mod)](#revert-third-person-camera-only-keep-squad-mod)
+   - [Full Revert to Clean Vanilla](#full-revert-to-clean-vanilla)
 7. [Frequently Asked Questions & Troubleshooting](#frequently-asked-questions--troubleshooting)
 
 ---
@@ -43,6 +47,24 @@ Locate your game's `Bin64` directory:
 
 ---
 
+## Choosing Your Installation Profile
+
+The patcher supports modular installation:
+
+### Profile 1: Core Squad & Guerrilla Overhaul (Stable / Default)
+*Command:* `python3 patcher.py --apply <target>`
+- **Recommended for all players.**
+- Applies Patches #1–#21 (23 patches): 12-man companion recruitment cap, 75% squad damage resistance (4x HP), instant combat reactions (<200ms), true marksman aim, doorway collision avoidance, and 4x active urban war presence.
+- 100% stable, fully tested, zero camera quirks. Keeps native first-person perspective intact.
+
+### Profile 2: Full Overhaul with Third-Person Camera (Optional / Experimental)
+*Command:* `python3 patcher.py --apply --with-third-person <target>`
+- Applies all 32 patches (Core Overhaul + Third-Person OTS Camera Suite).
+- Enables over-the-shoulder 3rd-person traversal, F1 hotkey toggle, and dynamic 1P iron sights aiming.
+- **Note:** Because the game was originally designed exclusively for first-person gameplay, 3P camera features can experience engine-level friction (such as interior wall collision clipping, vehicle cameras, and specific weapon animation states).
+
+---
+
 ## Method 1: Automated Patcher (Recommended)
 
 The patcher modifies only the specific instruction bytes in your existing executable, creates an automatic backup (`Homefront2_Release.exe.vanilla`), and verifies file integrity in **under 0.1 seconds**.
@@ -66,11 +88,16 @@ The patcher modifies only the specific instruction bytes in your existing execut
    ```
    *You should see:* `[+] Binary Status: Clean Vanilla (Unmodified)`.
 
-4. **Apply all patches:**
+4. **Apply the stable Core Squad Overhaul (Recommended):**
    ```cmd
    python patcher.py --apply "C:\Program Files (x86)\Steam\steamapps\common\Homefront_The_Revolution\Bin64\Homefront2_Release.exe"
    ```
-   *The patcher will automatically create a backup at `Homefront2_Release.exe.vanilla` and patch all 21 routines.*
+   *The patcher will automatically create a backup at `Homefront2_Release.exe.vanilla` and apply the 23 core routines.*
+
+   *(Optional) If you wish to test the experimental Third-Person Camera suite:*
+   ```cmd
+   python patcher.py --apply --with-third-person "C:\Program Files (x86)\Steam\steamapps\common\Homefront_The_Revolution\Bin64\Homefront2_Release.exe"
+   ```
 
 5. Launch the game normally from your Steam Library!
 
@@ -84,9 +111,14 @@ The patcher modifies only the specific instruction bytes in your existing execut
    cd Homefront-The-Revolution-reverse-engineered
    ```
 
-2. **Apply the patch directly:**
+2. **Apply the stable Core Squad Overhaul:**
    ```bash
    python3 patcher.py --apply ~/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe
+   ```
+
+   *(Optional) To install with Third-Person Camera:*
+   ```bash
+   python3 patcher.py --apply --with-third-person ~/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe
    ```
 
 3. Launch the game via Steam with your preferred Proton version (e.g. Proton GE or Proton Experimental).
@@ -107,20 +139,6 @@ The patcher modifies only the specific instruction bytes in your existing execut
 
 ---
 
-## Method 2: Manual Replacement (If Sent Pre-Patched EXE)
-
-If a friend directly shared a pre-patched `Homefront2_Release.exe` with you:
-
-1. Close the game and make sure it is not running in Steam.
-2. Navigate to your game's directory:
-   `Steam/steamapps/common/Homefront_The_Revolution/Bin64/`
-3. **Backup your original executable:**
-   Rename `Homefront2_Release.exe` $\to$ `Homefront2_Release.exe.bak`.
-4. Copy the patched `Homefront2_Release.exe` into the `Bin64/` folder.
-5. Launch the game via Steam.
-
----
-
 ## In-Game Verification Checklist
 
 Once inside the campaign:
@@ -137,41 +155,49 @@ Once inside the campaign:
    - Notice that both friendly fighters and KPA open fire instantly (~150ms) without standing around staring at each other.
 4. **Squad Survivability & Aim:**
    - Observe followers during a firefight: they survive 12–15 bullets (4x durability) and reliably hit targets with center-mass marksmanship.
-5. **Third-Person OTS & Dynamic Aiming Controls:**
-   - Traversal and hipfiring are rendered in Over-The-Shoulder (OTS) 3rd-person mode (*Gears of War* offset: +0.38m Right, -0.18m elevation, 1.85m distance).
-   - Click **Right Mouse Button** (vanilla toggle ADS) to dynamically snap into 1st-person iron sights / reflex / sniper scope aiming with zero parallax and laser-point accuracy.
-   - Click **Right Mouse Button** again (toggle off) to return smoothly to 3rd-person OTS.
-   - Smartphone hacking minigames and interactive UI sequences automatically execute in first person.
+5. **(Optional) Third-Person Controls (if `--with-third-person` was used):**
+   - Press **`F1`** to toggle between 1st-person and 3rd-person OTS view.
+   - Click **Right Mouse Button** (vanilla toggle ADS) to dynamically snap into 1st-person iron sights / reflex / sniper scope aiming.
+   - Map (`M`), Weapon Customization (`X`), and Phone (`V`) automatically revert to first-person view.
 
 ---
 
-## How to Revert to Vanilla
+## How to Revert or Switch Modes
 
-You can revert to clean unmodded gameplay at any time using any of these methods:
+You can manage or revert modifications at any time:
 
-### Option A: Using the Patcher (Instant)
+### Revert Third-Person Camera Only (Keep Squad Mod)
+If you tried the experimental 3P camera and want to remove it while keeping your 12-man squad overhaul active:
+```bash
+python3 patcher.py --revert-third-person /path/to/Homefront2_Release.exe
+```
+*Restores the binary cleanly to the verified Core Squad Overhaul state (`96f593ff3c734855066daced924e6521`).*
+
+### Full Revert to Clean Vanilla
+Restores the executable 100% back to unmodded vanilla original (`0326ea202fcd7ceb3760d14bc8d07f63`):
 ```bash
 python3 patcher.py --revert /path/to/Homefront2_Release.exe
 ```
 
-### Option B: Restoring the Automatic Backup
-Delete `Homefront2_Release.exe` and rename `Homefront2_Release.exe.vanilla` back to `Homefront2_Release.exe`.
-
-### Option C: Steam File Verification
-In Steam: Right-click **Homefront: The Revolution** $\to$ **Properties** $\to$ **Installed Files** $\to$ **Verify integrity of game files**.
+### Alternative Revert Methods
+- **Restoring Backup:** Delete `Homefront2_Release.exe` and rename `Homefront2_Release.exe.vanilla` back to `Homefront2_Release.exe`.
+- **Steam Verification:** In Steam: Right-click **Homefront: The Revolution** $\to$ **Properties** $\to$ **Installed Files** $\to$ **Verify integrity of game files**.
 
 ---
 
 ## Frequently Asked Questions & Troubleshooting
 
+#### Q: Which mode should I install?
+**A:** We strongly recommend the **Core Squad Overhaul** (`python3 patcher.py --apply ...`). It gives you the full *Freedom Fighters* squad experience (12 followers, 4x health, instant reaction, true marksman accuracy, quadrupled war spawns) with 100% stability. The Third-Person Camera is an optional experimental addition for players who specifically want an OTS perspective.
+
+#### Q: How do I know which mode is currently active on my executable?
+**A:** Run `python3 patcher.py --verify /path/to/Homefront2_Release.exe`. The patcher will inspect all 32 routines and report whether the binary is Clean Vanilla, Core Squad Overhaul Active, or Full Overhaul Active.
+
 #### Q: Will this break my existing save files?
 **A:** **No.** Save serialization in CryEngine stores follower assignments dynamically per NPC entity (`CGameAI::Serialize`). Your existing safehouse and campaign progress are 100% compatible.
 
 #### Q: Does Steam detect this as a cheat?
-**A:** **No.** *Homefront: The Revolution* single-player campaign has no anti-cheat software (Easy Anti-Cheat or BattlEye are not used in campaign mode). This mod is strictly for single-player offline campaign play.
+**A:** **No.** *Homefront: The Revolution* single-player campaign has no anti-cheat software. This mod is strictly for single-player offline campaign play.
 
 #### Q: What happens if Steam updates the game?
-**A:** If Steam downloads an update or verifies game files, it will simply replace `Homefront2_Release.exe` with vanilla. You just re-run `python3 patcher.py --apply` to re-enable all 28 patches.
-
-#### Q: Why does the patcher report a byte mismatch?
-**A:** Make sure your executable is the latest 64-bit Steam Release version (`Homefront2_Release.exe`, 41,827,328 bytes, MD5: `0326ea202fcd7ceb3760d14bc8d07f63`). If your game is already patched, `python3 patcher.py --verify` will show which patches are active.
+**A:** If Steam downloads an update or verifies game files, it will replace `Homefront2_Release.exe` with vanilla. You simply re-run `python3 patcher.py --apply` to re-apply the mod.

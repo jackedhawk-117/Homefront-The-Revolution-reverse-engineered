@@ -10,7 +10,9 @@
       "desc": "Raises active soft AI agent population cap from 24 to 96",
       "original_hex": "f30f101d8b38ca01",
       "patched_hex": "f30f101dcff5e601",
-      "file_offset_hex": "0x369f29"
+      "file_offset_hex": "0x369f29",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "2",
@@ -22,7 +24,9 @@
       "desc": "Expands spatial grid agent density ceiling from 60 to 150",
       "original_hex": "f30f101d1ad9d601",
       "patched_hex": "f30f101d4edec701",
-      "file_offset_hex": "0x369f62"
+      "file_offset_hex": "0x369f62",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "3",
@@ -34,7 +38,9 @@
       "desc": "Raises absolute world hard AI limit from 64 to 150",
       "original_hex": "f30f101d1937ca01",
       "patched_hex": "f30f101d15dec701",
-      "file_offset_hex": "0x369f9b"
+      "file_offset_hex": "0x369f9b",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "4",
@@ -46,7 +52,9 @@
       "desc": "Reduces cell repopulation cooldown from 100s to 5s",
       "original_hex": "f30f101d8b36c601",
       "patched_hex": "f30f101dfb2bc401",
-      "file_offset_hex": "0x36a075"
+      "file_offset_hex": "0x36a075",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "5",
@@ -58,7 +66,9 @@
       "desc": "Halves reinforcement call retry delay from 5.0s to 2.5s",
       "original_hex": "f3440f101dd235c4",
       "patched_hex": "f3440f101df692c5",
-      "file_offset_hex": "0x36969d"
+      "file_offset_hex": "0x36969d",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "6",
@@ -70,7 +80,9 @@
       "desc": "Expands active simulation circle radius from 40m to 80m",
       "original_hex": "f30f101d5ce6cb01",
       "patched_hex": "f30f101d5049c401",
-      "file_offset_hex": "0x369a64"
+      "file_offset_hex": "0x369a64",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "7",
@@ -82,7 +94,9 @@
       "desc": "Spawns 4 agents per frame instead of 1, allowing full fireteams to spawn instantly",
       "original_hex": "418d6c2401",
       "patched_hex": "418d6c2404",
-      "file_offset_hex": "0x3698f5"
+      "file_offset_hex": "0x3698f5",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "8",
@@ -94,7 +108,9 @@
       "desc": "Increases maximum concurrent roaming patrols from 2 to 8",
       "original_hex": "bf02000000",
       "patched_hex": "bf08000000",
-      "file_offset_hex": "0x843df0"
+      "file_offset_hex": "0x843df0",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "9",
@@ -106,7 +122,9 @@
       "desc": "More than doubles troop presence scalar per patrol from 2.22 to 5.0",
       "original_hex": "f30f101d0a817701",
       "patched_hex": "f30f101d4a8e7601",
-      "file_offset_hex": "0x843e26"
+      "file_offset_hex": "0x843e26",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "10",
@@ -118,7 +136,9 @@
       "desc": "Increases maximum Resistance follower recruitment cap from 4 to 12",
       "original_hex": "41b904000000",
       "patched_hex": "41b90c000000",
-      "file_offset_hex": "0x88638d"
+      "file_offset_hex": "0x88638d",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "11",
@@ -130,7 +150,9 @@
       "desc": "Expands combat inner buffer radius from 2.0m to 5.0m",
       "original_hex": "f3440f102d2f00a901",
       "patched_hex": "f3440f102d4f00a901",
-      "file_offset_hex": "0x5ca368"
+      "file_offset_hex": "0x5ca368",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "12",
@@ -142,7 +164,9 @@
       "desc": "Expands combat squad perimeter from ~12m to ~22m so 12 members fan out into cover",
       "original_hex": "f3440f590d96ffa801",
       "patched_hex": "f3440f590db2ffa801",
-      "file_offset_hex": "0x5ca405"
+      "file_offset_hex": "0x5ca405",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "13",
@@ -154,7 +178,9 @@
       "desc": "Expands non-combat travel follow distance from 2.0m to 5.0m",
       "original_hex": "f30f101d9985a901",
       "patched_hex": "f30f101db985a901",
-      "file_offset_hex": "0x5c1dff"
+      "file_offset_hex": "0x5c1dff",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "14",
@@ -166,7 +192,9 @@
       "desc": "Sets inter-agent personal clearance to 0.25m for streaming through narrow doorways",
       "original_hex": "f30f101d77c21e01",
       "patched_hex": "f30f101df9b41d01",
-      "file_offset_hex": "0xdcb025"
+      "file_offset_hex": "0xdcb025",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "15",
@@ -178,7 +206,9 @@
       "desc": "Disables avoidance cutoff near player (3.0m -> 0.0m), preventing halt clustering",
       "original_hex": "f30f101dd6122201",
       "patched_hex": "f30f101d52081e01",
-      "file_offset_hex": "0xdcaf96"
+      "file_offset_hex": "0xdcaf96",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "16",
@@ -190,7 +220,9 @@
       "desc": "Expands follower tether leash from 100m to 250m to prevent choke-point dismissals",
       "original_hex": "f30f101d33118401",
       "patched_hex": "f30f101d3f698301",
-      "file_offset_hex": "0x8862e9"
+      "file_offset_hex": "0x8862e9",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "17",
@@ -202,7 +234,9 @@
       "desc": "Extends target retention from 2.0s to 30.0s so squad continues attacking rooftop enemies",
       "original_hex": "0f2f057477ee01",
       "patched_hex": "0f2f057877ee01",
-      "file_offset_hex": "0x5c4675"
+      "file_offset_hex": "0x5c4675",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "18",
@@ -214,7 +248,9 @@
       "desc": "Removes pitch/elevation vision cutoffs when alerted so squad spots elevated snipers",
       "original_hex": "4533c9c744242002000000",
       "patched_hex": "41b901000000c644242002",
-      "file_offset_hex": "0xdcabe5"
+      "file_offset_hex": "0xdcabe5",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "19",
@@ -226,7 +262,9 @@
       "desc": "Grants Resistance squad members 75% damage resistance (4x effective HP, Freedom Fighters durability)",
       "original_hex": "84c974634584c0745e3844242874293805f21bea01488b0d3ac504020f95c0488d1440486341584803d048c1e205f30f10840a98000000c3",
       "patched_hex": "384424287432f30f10050c4d9d01c39090909090909090909090909090909090909090909090909090909090909090909090909090909090",
-      "file_offset_hex": "0x5d6aba"
+      "file_offset_hex": "0x5d6aba",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "20A",
@@ -238,7 +276,9 @@
       "desc": "Reduces target hostility confirmation window from 1.0s to 100ms",
       "original_hex": "0000803f",
       "patched_hex": "cdcccc3d",
-      "file_offset_hex": "0x24aa400"
+      "file_offset_hex": "0x24aa400",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "20B",
@@ -250,7 +290,9 @@
       "desc": "Increases combat target state evaluation rate from every 5s to 5 times/second (200ms)",
       "original_hex": "0000a040",
       "patched_hex": "cdcc4c3e",
-      "file_offset_hex": "0x24aa410"
+      "file_offset_hex": "0x24aa410",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "20C",
@@ -262,7 +304,9 @@
       "desc": "Reduces exposed target re-acquisition delay from 1.0s to 100ms",
       "original_hex": "0000803f",
       "patched_hex": "cdcccc3d",
-      "file_offset_hex": "0x24aa420"
+      "file_offset_hex": "0x24aa420",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "21",
@@ -274,7 +318,9 @@
       "desc": "Zeroes out artificial angular pitch and yaw miss offsets; squad shoots true to aim",
       "original_hex": "e8340cfefff30f584708f30f114708",
       "patched_hex": "836704008367080090909090909090",
-      "file_offset_hex": "0x705727"
+      "file_offset_hex": "0x705727",
+      "module": "core",
+      "optional": false
     },
     {
       "id": "22A",
@@ -286,7 +332,9 @@
       "desc": "Intercepts CPlayerView::UpdateView to dynamically trigger CPlayer::SetThirdPerson on ADS toggle and minigames",
       "original_hex": "488b02ff9028020000",
       "patched_hex": "e974a7630190909090",
-      "file_offset_hex": "0x93e757"
+      "file_offset_hex": "0x93e757",
+      "module": "third_person",
+      "optional": true
     },
     {
       "id": "22B",
@@ -298,7 +346,9 @@
       "desc": "Evaluates F1 hotkey toggle, ADS zoom (0.80f threshold preserves crouch-cover and traversal 3P), and minigames, calling native CPlayer::SetThirdPerson",
       "original_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
       "patched_hex": "4885d2747580ba9c02000000745a31c0803d1965080200741983ba980100000075108b8aec0a000081f9cdcc4c3f7202b0013882bd010000742e41504151415241534883ec30f30f7f44242088c24c89e1e8364879fef30f6f4424204883c430415b415a415941584c89e1498b0424ff9028020000e916589cfe31c0ebf7cccc",
-      "file_offset_hex": "0x1f78ed0"
+      "file_offset_hex": "0x1f78ed0",
+      "module": "third_person",
+      "optional": true
     },
     {
       "id": "23",
@@ -310,7 +360,9 @@
       "desc": "Tightens default third-person camera distance from 3.5m to 1.85m action perspective",
       "original_hex": "f30f101d86f37501",
       "patched_hex": "f30f101d0afb9401",
-      "file_offset_hex": "0x8a3c1a"
+      "file_offset_hex": "0x8a3c1a",
+      "module": "third_person",
+      "optional": true
     },
     {
       "id": "24A",
@@ -322,7 +374,9 @@
       "desc": "Intercepts camera view position commit in CPlayerView::UpdateView to calibrate Gears of War OTS perspective",
       "original_hex": "8b0389078b43048947048b4308894708",
       "patched_hex": "e9e2a663019090909090909090909090",
-      "file_offset_hex": "0x93e869"
+      "file_offset_hex": "0x93e869",
+      "module": "third_person",
+      "optional": true
     },
     {
       "id": "24B",
@@ -334,7 +388,9 @@
       "desc": "Calculates +0.38m lateral right-shoulder offset via rotation quaternion basis vector and lowers elevation by -0.18m",
       "original_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
       "patched_hex": "f30f104308f30f5c0593000000f30f114308f30f104b0cf30f105310f30f105b14f30f1063180f28c2f30f59c20f28ebf30f59ebf30f58c5f30f58c0f30f102d54000000f30f5ce80f28c1f30f59c20f28d4f30f59d3f30f58c2f30f58c0f30f101d36000000f30f59ebf30f59c3f30f582bf30f584304f30f112bf30f1143048b0389078b43048947048b4308894708e994589cfecccccc0000803f5c8fc23eec51383e",
-      "file_offset_hex": "0x1f78f50"
+      "file_offset_hex": "0x1f78f50",
+      "module": "third_person",
+      "optional": true
     },
     {
       "id": "25A",
@@ -346,7 +402,9 @@
       "desc": "Intercepts Win32 WndProc message pump to detect physical F1 keydown messages without polling",
       "original_hex": "48895c240848896c24104889742418",
       "patched_hex": "e9932cd30190909090909090909090",
-      "file_offset_hex": "0x2488b8"
+      "file_offset_hex": "0x2488b8",
+      "module": "third_person",
+      "optional": true
     },
     {
       "id": "25B",
@@ -358,7 +416,9 @@
       "desc": "Evaluates WM_KEYDOWN / WM_SYSKEYDOWN: toggles g_thirdPersonEnabled on VK_F1, and forces 1P on M (Map), X (Customize), or V (Phone)",
       "original_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
       "patched_hex": "81fa00010000740881fa04010000753241f7c10000004075294183f870750af08035893e080201eb194183f84d740c4183f85874064183f8567507c6056e3e08020048895c240848896c24104889742418e921d32cfe",
-      "file_offset_hex": "0x1f7b150"
+      "file_offset_hex": "0x1f7b150",
+      "module": "third_person",
+      "optional": true
     },
     {
       "id": "26",
@@ -370,7 +430,9 @@
       "desc": "Neutralizes cover 1P override in FUN_14093a590, keeping third-person view active when crouching near waist-high cover",
       "original_hex": "740a",
       "patched_hex": "eb0a",
-      "file_offset_hex": "0x9399fe"
+      "file_offset_hex": "0x9399fe",
+      "module": "third_person",
+      "optional": true
     },
     {
       "id": "28",
@@ -378,11 +440,13 @@
       "va": "0x14082fe04",
       "offset": 8581636,
       "size": 2,
-      "category": "Weapon & Combat",
+      "category": "Third-Person Camera",
       "desc": "Bypasses IsClient 1P slot override in CWeapon::GetSlot, enabling weapon firing and blindfire from low cover in third-person view",
       "original_hex": "7516",
       "patched_hex": "9090",
-      "file_offset_hex": "0x82f204"
+      "file_offset_hex": "0x82f204",
+      "module": "third_person",
+      "optional": true
     }
   ]
 }
