@@ -662,10 +662,10 @@ In `ThirdPerson_DynamicTransition_Stub` at `0x141f79ad0` (Patch #22B, 128 Bytes)
 | Patch # | Parameter / Component | Instruction VA | File Offset | Size | Original Bytes | Patched Bytes | Purpose |
 | :---: | :--- | :---: | :---: | :---: | :--- | :--- | :--- |
 | **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | 9 B | `488b02ff9028020000` | `e974a7630190909090` | Intercepts `UpdateView` to trigger native `SetThirdPerson` on ADS toggle and minigames |
-| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 104 B | `00` $\times 104$ | `4885d2745980ba9c02000000...` | Evaluates F1 hotkey toggle, ADS zoom (0.80f threshold preserves crouch-cover and traversal 3P), and minigames |
+| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | `00` $\times 128$ | `4885d2747580ba9c02000000...` | Evaluates F1 hotkey toggle, ADS zoom (0.80f threshold preserves crouch-cover and traversal 3P), and minigames |
 | **#23** | `cl_tpvDist` | `0x1408a481a` | `0x8a3c1a` | 8 B | `f30f101d86f37501` | `f30f101d0afb9401` | Tightens camera distance from 3.5m to 1.85m action perspective |
-| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e9caa6630190...` | Intercepts view commit in `CPlayerView::UpdateView` to dispatch unified on-foot OTS and motorcycle 3P chase view |
-| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b38` | `0x1f78f38` | 188 B | `00` $\times 188$ | `f30f1043084183bc...` | Unified camera stub: calculates +0.33m lateral right OTS on-foot, centered chase view elevated +0.40m on motorcycle, with zero external calls |
+| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e9e2a6630190...` | Intercepts view commit in `CPlayerView::UpdateView` to dispatch Gears of War OTS |
+| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | 164 B | `00` $\times 164$ | `f30f104308f30f5c...` | Calibrates Gears of War OTS (+0.38m lateral right, -0.18m elevation) with zero external calls |
 | **#25A** | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | 15 B | `48895c240848896c24104889742418` | `e9932cd30190909090909090909090` | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
 | **#25B** | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 86 B | `00` $\times 86$ | `81fa00010000740881fa04010000...` | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN`: toggles on VK_F1, forces 1P on M (Map), X (Customize), or V (Phone) |
 | **#26** | `ThirdPerson_CoverOverride_Bypass` | `0x14093a5fe` | `0x9399fe` | 2 B | `740a` | `eb0a` | Neutralizes cover 1P override in `FUN_14093a590`, keeping 3P active near waist-high cover |
@@ -675,5 +675,5 @@ In `ThirdPerson_DynamicTransition_Stub` at `0x141f79ad0` (Patch #22B, 128 Bytes)
 - **Status:** **APPLIED & DEPLOYED TO STEAM**
   - Working binary: `/home/jackedhawk117/rework/Homefront2_Release.exe`
   - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
-  - **New Patched MD5:** `6bfeb169acc5a9065a46b1665306affa`
-  - **New Patched SHA256:** `0d6a9f899087929f81d840be692c1f0b2959cbf2b99e6be05710c59a8b5d6f88`
+  - **New Patched MD5:** `f9bcf502666adfe038d9143e2ab4d861`
+  - **New Patched SHA256:** `e3c7d3b439b56308effe3c9e8f428e7044d2cceb303c98fceab117299b9be2f2`

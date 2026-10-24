@@ -210,10 +210,10 @@ To reliably toggle perspective across Linux/Wine/Proton without polling broken W
 | Patch Name | Virtual Address | File Offset | Size | Purpose |
 | :--- | :--- | :--- | :---: | :--- |
 | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | 9 B | Intercepts `CPlayerView::UpdateView` to trigger native `SetThirdPerson` on ADS toggle and minigames |
-| `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 104 B | Evaluates F1 hotkey toggle, ADS zoom (0.80f threshold preserves crouch-cover and traversal 3P), and minigames |
+| `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | Evaluates F1 hotkey toggle, ADS zoom (0.80f threshold preserves crouch-cover and traversal 3P), and minigames |
 | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | 8 B | Tightens camera distance from 3.5m to 1.85m action perspective |
-| `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | Hooks view commit in `CPlayerView::UpdateView` to dispatch unified on-foot OTS and motorcycle 3P chase view |
-| `ThirdPerson_CameraOTS_Stub` | `0x141f79b38` | `0x1f78f38` | 188 B | Unified camera stub: calculates +0.33m lateral right OTS on-foot, centered chase view elevated +0.40m on motorcycle, with zero external calls |
+| `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | Hooks view commit in `CPlayerView::UpdateView` to dispatch Gears of War OTS |
+| `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | 164 B | Calibrates Gears of War OTS (+0.38m lateral right, -0.18m elevation) with zero external calls |
 | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | 15 B | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
 | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 86 B | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN`: toggles on VK_F1, forces 1P on M (Map), X (Customize), or V (Phone) |
 | `ThirdPerson_CoverOverride_Bypass` | `0x14093a5fe` | `0x9399fe` | 2 B | Neutralizes cover 1P override in `FUN_14093a590`, keeping 3P active near waist-high cover |
@@ -224,5 +224,5 @@ To reliably toggle perspective across Linux/Wine/Proton without polling broken W
 ## 7. Verification Checksums
 
 - **Vanilla Binary MD5:** `0326ea202fcd7ceb3760d14bc8d07f63`
-- **Fully Patched Binary MD5:** `6bfeb169acc5a9065a46b1665306affa`
-- **Fully Patched Binary SHA256:** `0d6a9f899087929f81d840be692c1f0b2959cbf2b99e6be05710c59a8b5d6f88`
+- **Fully Patched Binary MD5:** `f9bcf502666adfe038d9143e2ab4d861`
+- **Fully Patched Binary SHA256:** `e3c7d3b439b56308effe3c9e8f428e7044d2cceb303c98fceab117299b9be2f2`
