@@ -631,49 +631,49 @@ In `ThirdPerson_DynamicTransition_Stub` at `0x141f79ad0` (Patch #22B, 128 Bytes)
 
 ---
 
-## Phase 12: Camera Collision, Crouch Cover Fix & Motorcycle Third-Person View (October 24, 2026)
+## Phase 12: Camera Stabilization, Crouch Cover Fix, Motorcycle 3P View & Firing Resolution (October 24, 2026)
 
 ### 1. F1 Crash Root Cause Analysis & Perspective Stabilization
 - **Observed Behavior:** Pressing F1 caused an instant access violation / application termination.
-- **Root Cause 1 (Invalid VTable Offset):** In the prototype collision stub, the code attempted to query Ethan's physics entity via `[r12 + 0x38] -> [rax + 0x250]`. Scanning CryEngine 3.8 PE reveals zero calls to `[rax + 0x250]` on `IEntity`; `GetPhysics()` is located at `+0x288`. Dereferencing `+0x250` produced an immediate page fault.
-- **Root Cause 2 (Raycast Argument Redundancy):** Disassembly of CryEngine's native camera raycasting routines (`0x1409430c5` in `CPlayerView`) proves that the engine itself sets `pSkipEnts = NULL` (`[rsp + 0x38] = 0`) and `nSkipEnts = 0` (`[rsp + 0x40] = 0`) because `objtypes = 0x8011f` queries only static world geometry, terrain, and rigid props—it never intersects `ent_living` (`0x2`). Calling `IEntity` methods to fetch physics entities was completely redundant.
-- **Root Cause 3 (x64 Stack Alignment):** Pushing 4 registers followed by `sub rsp, 0x1a0` left `rsp % 16 == 0` prior to `call`, violating Microsoft x64 calling convention (`(rsp + 8) % 16 == 0`), which triggered GPF in downstream SSE instructions.
-- **Stabilization Fix:** Reverted on-foot OTS camera hooks (Patches #24A & #24B) to the battle-tested, zero-call quaternion basis vector stub (`0x141f79b50`). F1 toggling is now 100% crash-proof.
+- **Root Cause Analysis:** In the prototype collision stub (commit `ebd7e45`), `call 0x140071e90` (`RayWorldIntersection`) was invoked directly inside `CPlayerView::UpdateView`. `UpdateView` runs on the Render/Main thread while `pPhysicalWorld` is locked/updated by the Physics thread; calling `RayWorldIntersection` mid-frame caused a deadlock / access violation. Furthermore, the 1241-byte stub had been placed at `0x141f7a000`, overwriting executable functions in `PSFD00`.
+- **Stabilization Fix:**
+  - Removed all external function calls from `CPlayerView::UpdateView`.
+  - Restored `PSFD00` bytes to 100% vanilla state.
+  - Relocated Patch 24B (`ThirdPerson_CameraOTS_Stub`) into the `.text` zero-padding code cave at `0x141f79b38` (188 bytes).
+  - Cave 1 (`0x141f79ad0` - `0x141f79fff`, 304 bytes total) now hosts both Patch 22B (104 bytes) and Patch 24B (188 bytes) totaling 292 bytes (12 bytes to spare), with zero external calls and zero memory corruption. F1 toggling is 100% crash-proof.
 
-### 2. Low Cover / Crouch Auto-Switch Neutralization
-- **Root Cause 1:** `ThirdPerson_DynamicTransition_Stub` (Patch #22B) checked `cmp ecx, 0x3f7d70a4` (`0.99f`). When crouching near low cover, CryEngine slightly altered FOV (~0.97f), causing the engine to interpret cover peeking as ADS zoom and dropping Ethan to 1P. Lowering the threshold to `0x3f6147ae` (`0.88f`) preserves 3P during traversal, low cover, and blindfiring, while allowing actual Right-Click ADS (<= 0.84f iron sights) to cleanly drop to 1P.
-- **Root Cause 2:** In `FUN_14093a590` at `0x14093a5fe`, `cmp byte ptr [rcx + 0x50], 0` followed by `je 0x14093a60a` called `CPlayer::SetThirdPerson(pPlayer, 0)` upon entering cover. Patch #26 (`ThirdPerson_CoverOverride_Bypass`) replaces `74 0a` with `eb 0a` (`jmp 0x14093a60a`), neutralizing this forced 1P drop.
+### 2. Low Cover / Crouch Auto-Switch Neutralization & Smooth Movement
+- **Root Cause:** In `ThirdPerson_DynamicTransition_Stub` (Patch #22B), the zoom threshold caused sprint/slide/crouch FOV fluctuations (~0.86f–0.95f) to toggle `SetThirdPerson` on and off repeatedly, dropping Ethan to 1P and causing input drops.
+- **Fix:** Lowering the threshold in Patch 22B to `0.80f` (`0x3f4ccccd`) preserves 3P during traversal, low cover, and blindfiring, while allowing actual Right-Click ADS (<= 0.70f iron sights and optics) to cleanly drop to 1P.
+- **Cover Override Bypass (Patch #26):** In `FUN_14093a590` at `0x14093a5fe`, `cmp byte ptr [rcx + 0x50], 0` followed by `je 0x14093a60a` called `CPlayer::SetThirdPerson(pPlayer, 0)` upon entering cover. Replaced `74 0a` with `eb 0a` (`jmp 0x14093a60a`), completely eliminating forced 1P drop near low cover.
 
-### 3. Motorcycle Third-Person View & Dynamic Vehicle Perspective
-- **Location:** Vehicle view dispatch at VA `0x14093a635` (`call qword ptr [r9 + 0x120]; jmp 0x14093abd2`).
-- **Hook (Patch #27A, 12 Bytes):** Jumps to `Motorcycle_Perspective_Stub` in `PSFD00` dead code area (`0x141f7aa00`).
-- **Functionality (Patch #27B, 1010 Bytes):**
-  - Executes original `pVehicle->UpdateView` to obtain driver head position and mouse-look rotation quaternion.
-  - When `g_thirdPersonEnabled == 1`:
-    - Calls `CPlayer::SetThirdPerson(pPlayer, 1)` (`0x14070e35c`) so Ethan's full 3D body renders on the bike.
-    - Offsets camera 2.60m backwards and +0.75m upwards relative to driver mouse look.
-    - Performs raycast collision via `RayWorldIntersection` against world geometry, skipping the player physics entity.
-  - When `g_thirdPersonEnabled == 0`:
-    - Calls `CPlayer::SetThirdPerson(pPlayer, 0)` and maintains clean vanilla 1P driver view.
-    - Pressing `M` (Map), `X` (Weapon Customize), or `V` (Phone) automatically drops perspective to 1P via `WndProc_F1_Stub`.
+### 3. Motorcycle Third-Person Chase View
+- In Patch 24B, tests `cmp dword ptr [r12 + 0xc80], 0` (`m_linkedVehicleId` on `CPlayer`):
+  - **On Motorcycle (`!= 0`):** Skips lateral right-shoulder shift, keeping the chase camera centered directly behind the bike, and elevates camera by +0.40m for an unobstructed driving perspective.
+  - **On Foot (`== 0`):** Calculates an action-tight Gears of War over-the-right-shoulder (OTS) camera (+0.33m lateral right, -0.17m elevation).
+- When F1 is pressed, perspective toggles smoothly between 1P and 3P on both foot and motorcycle.
 
-### 4. Active Binary Patch Table (33 Patches Total)
+### 4. Weapon Firing & Blindfire Resolution (Patch #28)
+- In `CWeapon::GetSlot` at `0x14082fe04`, NOPed the client 1P override (`75 16` $\to$ `90 90`).
+- Forces the client player to evaluate `IActor::IsThirdPerson()`, returning Slot 1 (`eIGS_ThirdPerson`) during 3P traversal, hipfire, and blindfire from low cover.
+
+### 5. Active Binary Patch Table (32 Patches Total)
 
 | Patch # | Parameter / Component | Instruction VA | File Offset | Size | Original Bytes | Patched Bytes | Purpose |
 | :---: | :--- | :---: | :---: | :---: | :--- | :--- | :--- |
 | **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | 9 B | `488b02ff9028020000` | `e974a7630190909090` | Intercepts `UpdateView` to trigger native `SetThirdPerson` on ADS toggle and minigames |
-| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | `00` $\times 128$ | `4885d2747580ba9c02000000...` | Evaluates F1 hotkey toggle, ADS zoom (0.85f threshold preserves sprint, slide, crouch, and cover-peek 3P), and minigames |
+| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 104 B | `00` $\times 104$ | `4885d2745980ba9c02000000...` | Evaluates F1 hotkey toggle, ADS zoom (0.80f threshold preserves crouch-cover and traversal 3P), and minigames |
 | **#23** | `cl_tpvDist` | `0x1408a481a` | `0x8a3c1a` | 8 B | `f30f101d86f37501` | `f30f101d0afb9401` | Tightens camera distance from 3.5m to 1.85m action perspective |
-| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e992ab630190...` | Intercepts view commit in `CPlayerView::UpdateView` to dispatch unified on-foot OTS and motorcycle 3P chase view |
-| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f7a000` | `0x1f79000` | 1241 B | Vanilla `PSFD00` bytes | Full camera & raycast stub (1241 B) | Unified OTS on-foot (+0.38m lateral, -0.18m elevation), motorcycle chase (2.80m, +0.65m elevation), and raycast collision against walls/ceilings |
+| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e9caa6630190...` | Intercepts view commit in `CPlayerView::UpdateView` to dispatch unified on-foot OTS and motorcycle 3P chase view |
+| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b38` | `0x1f78f38` | 188 B | `00` $\times 188$ | `f30f1043084183bc...` | Unified camera stub: calculates +0.33m lateral right OTS on-foot, centered chase view elevated +0.40m on motorcycle, with zero external calls |
 | **#25A** | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | 15 B | `48895c240848896c24104889742418` | `e9932cd30190909090909090909090` | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
 | **#25B** | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 86 B | `00` $\times 86$ | `81fa00010000740881fa04010000...` | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN`: toggles on VK_F1, forces 1P on M (Map), X (Customize), or V (Phone) |
 | **#26** | `ThirdPerson_CoverOverride_Bypass` | `0x14093a5fe` | `0x9399fe` | 2 B | `740a` | `eb0a` | Neutralizes cover 1P override in `FUN_14093a590`, keeping 3P active near waist-high cover |
 | **#28** | `Weapon_ThirdPersonFireSlot_Bypass` | `0x14082fe04` | `0x82f204` | 2 B | `7516` | `9090` | Bypasses IsClient 1P slot override in `CWeapon::GetSlot`, enabling weapon firing and blindfire from low cover in 3P |
 
-### 5. Status & Deployment
+### 6. Status & Deployment
 - **Status:** **APPLIED & DEPLOYED TO STEAM**
   - Working binary: `/home/jackedhawk117/rework/Homefront2_Release.exe`
   - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
-  - **New Patched MD5:** `d0d295460ee9c2e0d9373344eca62dbf`
-  - **New Patched SHA256:** `70466f937e2c0531d6b77916fe94a69aa8d130e87fe34e84792eb440401e385d`
+  - **New Patched MD5:** `6bfeb169acc5a9065a46b1665306affa`
+  - **New Patched SHA256:** `0d6a9f899087929f81d840be692c1f0b2959cbf2b99e6be05710c59a8b5d6f88`

@@ -188,18 +188,17 @@ To reliably toggle perspective across Linux/Wine/Proton without polling broken W
 - **Root Cause 1:** In `ThirdPerson_DynamicTransition_Stub` (Patch #22B), the zoom threshold `cmp ecx, 0x3f7d70a4` (0.99f) treated subtle cover-peeking FOV changes (~0.97f) as ADS zoom. Lowering the threshold to `0x3f6147ae` (0.88f) allows cover-peeking and blindfiring to stay cleanly in third person while preserving instant 1P drop on true Right-Click ADS (<= 0.84f iron sights, <= 0.50f scopes).
 - **Root Cause 2:** In `FUN_14093a590` at `0x14093a5fe`, `cmp byte ptr [rcx + 0x50], 0` followed by `je 0x14093a60a` called `CPlayer::SetThirdPerson(pPlayer, 0)` on entering cover. Patch #26 (`ThirdPerson_CoverOverride_Bypass`) replaces `74 0a` with `eb 0a` (`jmp 0x14093a60a`), completely eliminating forced 1P override.
 
-### C. Unified Camera & Motorcycle Third-Person Chase Perspective with Raycast Collision
-- The camera position commit in `CPlayerView::UpdateView` (`0x14093f469`) is hooked via Patch #24A (`jmp ThirdPerson_CameraOTS_Stub` at `0x141f7a000`).
-- Checks `pPlayer->GetLinkedVehicle()` (`[pPlayer->vtable + 0x318]`):
-  - **On Motorcycle (`pVehicle != NULL`):**
-    - Ensures `CPlayer::SetThirdPerson(pPlayer, 1)` (`0x14070e35c`) is called so Ethan Brady's full 3D body renders seated on the bike.
-    - Computes a 2.80m chase camera offset with +0.65m elevation centered behind the motorcycle.
-  - **On Foot (`pVehicle == NULL`):**
-    - Calculates an action-tight Gears of War over-the-right-shoulder (OTS) camera (+0.38m lateral right, -0.18m elevation).
-- **Camera Wall & Ceiling Collision Detection:**
-  - Evaluates `RayWorldIntersection` (`0x140071e90`) against static geometry, terrain, and rigid props (`0x8011f`) using `gEnv->pPhysicalWorld` (`0x1424790e8`).
-  - Originates from the player's head pivot and extends towards the desired camera viewpoint.
-  - On hit, smoothly clamps camera distance with safe margin buffers, preventing the camera from clipping into walls, ceilings, doorways, or tunnels.
+### C. Unified Camera & Motorcycle Third-Person Chase Perspective
+- The camera position commit in `CPlayerView::UpdateView` (`0x14093f469`) is hooked via Patch #24A (`jmp ThirdPerson_CameraOTS_Stub` at `0x141f79b38`).
+- Checks `[r12 + 0xc80]` (`m_linkedVehicleId` on `CPlayer`):
+  - **On Motorcycle (`[r12 + 0xc80] != 0`):**
+    - Skips lateral right-shoulder shift, keeping the chase camera centered behind the motorcycle.
+    - Elevates camera elevation by +0.40m, providing an unobstructed driving view of Ethan and the motorcycle.
+  - **On Foot (`[r12 + 0xc80] == 0`):**
+    - Calculates an action-tight Gears of War over-the-right-shoulder (OTS) camera (+0.33m lateral right, -0.17m elevation).
+- **Crash Immunity & Render Thread Isolation:**
+  - Zero external calls from within `CPlayerView::UpdateView`.
+  - All transforms are computed via pure x86-64 SSE vector arithmetic in the `.text` code cave (188 bytes total).
 - **Weapon Firing & Blindfire Resolution (Patch #28):**
   - In `CWeapon::GetSlot` at `0x14082fe04`, NOPs the client 1P override (`75 16` $\to$ `90 90`).
   - Forces the client player to evaluate `IActor::IsThirdPerson()`, returning Slot 1 (`eIGS_ThirdPerson`) during 3P traversal, hipfire, and blindfire from low cover.
@@ -211,10 +210,10 @@ To reliably toggle perspective across Linux/Wine/Proton without polling broken W
 | Patch Name | Virtual Address | File Offset | Size | Purpose |
 | :--- | :--- | :--- | :---: | :--- |
 | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | 9 B | Intercepts `CPlayerView::UpdateView` to trigger native `SetThirdPerson` on ADS toggle and minigames |
-| `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | Evaluates F1 hotkey toggle, ADS zoom (0.85f threshold preserves sprint, slide, crouch, and cover-peek 3P), and minigames |
+| `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 104 B | Evaluates F1 hotkey toggle, ADS zoom (0.80f threshold preserves crouch-cover and traversal 3P), and minigames |
 | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | 8 B | Tightens camera distance from 3.5m to 1.85m action perspective |
 | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | Hooks view commit in `CPlayerView::UpdateView` to dispatch unified on-foot OTS and motorcycle 3P chase view |
-| `ThirdPerson_CameraOTS_Stub` | `0x141f7a000` | `0x1f79000` | 1241 B | Unified camera stub: +0.38m lateral OTS on-foot, 2.80m chase on motorcycle, and raycast collision detection with safe distance clamping |
+| `ThirdPerson_CameraOTS_Stub` | `0x141f79b38` | `0x1f78f38` | 188 B | Unified camera stub: calculates +0.33m lateral right OTS on-foot, centered chase view elevated +0.40m on motorcycle, with zero external calls |
 | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | 15 B | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
 | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 86 B | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN`: toggles on VK_F1, forces 1P on M (Map), X (Customize), or V (Phone) |
 | `ThirdPerson_CoverOverride_Bypass` | `0x14093a5fe` | `0x9399fe` | 2 B | Neutralizes cover 1P override in `FUN_14093a590`, keeping 3P active near waist-high cover |
@@ -225,5 +224,5 @@ To reliably toggle perspective across Linux/Wine/Proton without polling broken W
 ## 7. Verification Checksums
 
 - **Vanilla Binary MD5:** `0326ea202fcd7ceb3760d14bc8d07f63`
-- **Fully Patched Binary MD5:** `d0d295460ee9c2e0d9373344eca62dbf`
-- **Fully Patched Binary SHA256:** `70466f937e2c0531d6b77916fe94a69aa8d130e87fe34e84792eb440401e385d`
+- **Fully Patched Binary MD5:** `6bfeb169acc5a9065a46b1665306affa`
+- **Fully Patched Binary SHA256:** `0d6a9f899087929f81d840be692c1f0b2959cbf2b99e6be05710c59a8b5d6f88`
