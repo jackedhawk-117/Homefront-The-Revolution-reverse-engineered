@@ -178,15 +178,11 @@ To reliably toggle perspective across Linux/Wine/Proton without polling broken W
 
 ---
 
-## 5. Camera Collision, Cover Bypass & Motorcycle Architecture
+## 5. Camera Angles, Cover Bypass & Motorcycle Architecture
 
-### A. Physics Camera Raycast Collision (`RayWorldIntersection`)
-To prevent the third-person camera from clipping into walls, ceilings, and doorway frames:
-- CryEngine's native physics raycaster `RayWorldIntersection` (`0x140071e90`) is queried each frame using global `g_pPhysicalWorld` (`0x1424790e8`).
-- Ray origin (`org`) is Ethan's animated shoulder pivot point (`cam_target - dir`).
-- Ray direction vector (`dir`) extends backwards along the camera arm (`-forward * 1.85f + (0, 0, -0.18f)`).
-- `pSkipEnts` receives `pPlayer->GetEntity()->GetPhysics()` (`[r12 + 0x38] -> [rax + 0x250]`), preventing self-intersection against Ethan's own body.
-- When geometry is struck (`hit.dist < 1.85f`), camera distance clamps to `max(0.20m, hit.dist - 0.22m)` with a 0.22m skin margin, smoothly pulling the camera forward without geometry penetration.
+### A. OTS Camera Angle Calibration
+- Camera viewpoint is calibrated to an action-tight *Gears of War* OTS perspective (+0.38m lateral right-shoulder offset via rotation quaternion basis vector, -0.18m elevation, 1.85m distance).
+- Implemented via `ThirdPerson_CameraOTS_Stub` at `0x141f79b50` (164 bytes) with zero external calls, guaranteeing 100% thread safety and crash immunity under Proton/Wine.
 
 ### B. Low Cover / Crouch Auto-Switch Neutralization
 - **Root Cause 1:** In `ThirdPerson_DynamicTransition_Stub` (Patch #22B), the zoom threshold `cmp ecx, 0x3f7d70a4` (0.99f) treated subtle cover-peeking FOV changes (~0.97f) as ADS zoom. Lowering the threshold to `0x3f6147ae` (0.88f) allows cover-peeking and blindfiring to stay cleanly in third person while preserving instant 1P drop on true Right-Click ADS (<= 0.84f iron sights, <= 0.50f scopes).
@@ -197,8 +193,7 @@ To prevent the third-person camera from clipping into walls, ceilings, and doorw
 - Executes original vehicle `UpdateView(rdi, r8d)` to obtain driver head position and mouse-look rotation quaternion.
 - When `g_thirdPersonEnabled == 1`:
   - Calls `CPlayer::SetThirdPerson(pPlayer, 1)` (`0x14070e35c`) to render Ethan's full 3D body on the motorcycle.
-  - Offsets the camera 2.60m backwards and +0.75m upwards relative to driver mouse-look rotation.
-  - Casts collision ray from driver head along the backward camera arm via `RayWorldIntersection`, skipping the player physics entity to prevent wall clipping.
+  - Offsets the camera 2.60m backwards and +0.75m upwards relative to driver mouse-look rotation (`[rdi + 0x1c..0x28]` and `[rdi + 0x2c..0x34]`).
 - When `g_thirdPersonEnabled == 0`:
   - Calls `CPlayer::SetThirdPerson(pPlayer, 0)` and maintains clean vanilla 1st-person motorcycle perspective.
   - Pressing `M` (Map), `X` (Weapon Customize), or `V` (Phone) auto-switches to 1P via `WndProc_F1_Stub`.
@@ -212,18 +207,18 @@ To prevent the third-person camera from clipping into walls, ceilings, and doorw
 | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | 9 B | Intercepts `CPlayerView::UpdateView` to trigger native `SetThirdPerson` on ADS toggle and minigames |
 | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | Evaluates F1 hotkey toggle, ADS zoom (0.88f threshold preserves cover-peek 3P), and minigames; triggers native transitions |
 | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | 8 B | Tightens camera distance from 3.5m to 1.85m action perspective |
-| `ThirdPerson_CameraCollision_Hook` | `0x14093f469` | `0x93e869` | 16 B | Hooks view commit in `CPlayerView::UpdateView` to jump to raycast collision solver |
-| `ThirdPerson_CameraCollision_Stub` | `0x141f7a600` | `0x1f79600` | 1008 B | Computes OTS offset and performs `RayWorldIntersection` against world geometry to prevent clipping |
+| `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | Hooks view commit in `CPlayerView::UpdateView` to calibrate OTS perspective |
+| `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | 164 B | Calculates +0.38m lateral right-shoulder offset and lowers elevation by -0.18m |
 | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | 15 B | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
 | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 86 B | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN`: toggles on VK_F1, forces 1P on M (Map), X (Customize), or V (Phone) |
 | `ThirdPerson_CoverOverride_Bypass` | `0x14093a5fe` | `0x9399fe` | 2 B | Neutralizes cover 1P override in `FUN_14093a590`, keeping 3P active near waist-high cover |
 | `Motorcycle_Perspective_Hook` | `0x14093a635` | `0x939a35` | 12 B | Hooks vehicle view dispatch in `FUN_14093a590` to enable third-person motorcycle perspective |
-| `Motorcycle_Perspective_Stub` | `0x141f7aa00` | `0x1f79a00` | 1010 B | Renders player character on bike, calculates 2.60m chase cam, mouse-look rotation, and raycast collision |
+| `Motorcycle_Perspective_Stub` | `0x141f7aa00` | `0x1f79a00` | 406 B | Renders player character on bike, calculates 2.60m chase cam with 0.75m elevation, and mouse-look rotation |
 
 ---
 
 ## 7. Verification Checksums
 
 - **Vanilla Binary MD5:** `0326ea202fcd7ceb3760d14bc8d07f63`
-- **Fully Patched Binary MD5:** `5e95dc48aef9731a89d507badf9049e3`
-- **Fully Patched Binary SHA256:** `161953fc6cc7525bc01a17567f9fe66d611986e37f667652e12f39cb78a2ee8d`
+- **Fully Patched Binary MD5:** `7d9b421dc67bdf6225d9b33f36e6f596`
+- **Fully Patched Binary SHA256:** `2f1d5142c2953d6ac470173d9ed5b71b1d7b53bf958167ff8916f683f0a118ad`

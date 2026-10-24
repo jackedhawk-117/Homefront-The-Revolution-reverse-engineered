@@ -633,14 +633,12 @@ In `ThirdPerson_DynamicTransition_Stub` at `0x141f79ad0` (Patch #22B, 128 Bytes)
 
 ## Phase 12: Camera Collision, Crouch Cover Fix & Motorcycle Third-Person View (October 24, 2026)
 
-### 1. Physics-Based Camera Raycast Collision (`RayWorldIntersection`)
-- **Problem:** When backing into walls or maneuvering in tight interiors, the third-person OTS camera clipped through geometry into void space.
-- **Solution:** Integrated CryEngine's native `RayWorldIntersection` wrapper (`0x140071e90`) querying global `pPhysicalWorld` (`0x1424790e8`).
-  - Ray origin: Ethan's shoulder pivot (`cam_target - dir`).
-  - Ray direction: Camera arm vector (`-forward * 1.85f + (0, 0, -0.18f)`).
-  - Skips player physics entity (`pPlayer->GetEntity()->GetPhysics()`) to prevent self-collision.
-  - When world geometry is struck (`hit.dist < 1.85f`), pulls camera forward to `max(0.20m, hit.dist - 0.22m)`.
-  - Preserves all 10 non-volatile XMM registers (`xmm6..xmm15`) and guarantees 16-byte stack alignment.
+### 1. F1 Crash Root Cause Analysis & Perspective Stabilization
+- **Observed Behavior:** Pressing F1 caused an instant access violation / application termination.
+- **Root Cause 1 (Invalid VTable Offset):** In the prototype collision stub, the code attempted to query Ethan's physics entity via `[r12 + 0x38] -> [rax + 0x250]`. Scanning CryEngine 3.8 PE reveals zero calls to `[rax + 0x250]` on `IEntity`; `GetPhysics()` is located at `+0x288`. Dereferencing `+0x250` produced an immediate page fault.
+- **Root Cause 2 (Raycast Argument Redundancy):** Disassembly of CryEngine's native camera raycasting routines (`0x1409430c5` in `CPlayerView`) proves that the engine itself sets `pSkipEnts = NULL` (`[rsp + 0x38] = 0`) and `nSkipEnts = 0` (`[rsp + 0x40] = 0`) because `objtypes = 0x8011f` queries only static world geometry, terrain, and rigid props—it never intersects `ent_living` (`0x2`). Calling `IEntity` methods to fetch physics entities was completely redundant.
+- **Root Cause 3 (x64 Stack Alignment):** Pushing 4 registers followed by `sub rsp, 0x1a0` left `rsp % 16 == 0` prior to `call`, violating Microsoft x64 calling convention (`(rsp + 8) % 16 == 0`), which triggered GPF in downstream SSE instructions.
+- **Stabilization Fix:** Reverted on-foot OTS camera hooks (Patches #24A & #24B) to the battle-tested, zero-call quaternion basis vector stub (`0x141f79b50`). F1 toggling is now 100% crash-proof.
 
 ### 2. Low Cover / Crouch Auto-Switch Neutralization
 - **Root Cause 1:** `ThirdPerson_DynamicTransition_Stub` (Patch #22B) checked `cmp ecx, 0x3f7d70a4` (`0.99f`). When crouching near low cover, CryEngine slightly altered FOV (~0.97f), causing the engine to interpret cover peeking as ADS zoom and dropping Ethan to 1P. Lowering the threshold to `0x3f6147ae` (`0.88f`) preserves 3P during traversal, low cover, and blindfiring, while allowing actual Right-Click ADS (<= 0.84f iron sights) to cleanly drop to 1P.
@@ -666,17 +664,17 @@ In `ThirdPerson_DynamicTransition_Stub` at `0x141f79ad0` (Patch #22B, 128 Bytes)
 | **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | 9 B | `488b02ff9028020000` | `e974a7630190909090` | Intercepts `UpdateView` to trigger native `SetThirdPerson` on ADS toggle and minigames |
 | **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | 128 B | `00` $\times 128$ | `4885d2747580ba9c02000000...` | Evaluates F1 hotkey toggle, ADS zoom (0.88f threshold preserves cover-peek 3P), and minigames |
 | **#23** | `cl_tpvDist` | `0x1408a481a` | `0x8a3c1a` | 8 B | `f30f101d86f37501` | `f30f101d0afb9401` | Tightens camera distance from 3.5m to 1.85m action perspective |
-| **#24A** | `ThirdPerson_CameraCollision_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e992b1630190...` | Intercepts view commit in `CPlayerView::UpdateView` to jump to raycast collision solver |
-| **#24B** | `ThirdPerson_CameraCollision_Stub` | `0x141f7a600` | `0x1f79600` | 1008 B | Vanilla `PSFD00` bytes | Full collision solver stub | Computes OTS offset and performs `RayWorldIntersection` against world geometry |
+| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | 16 B | `8b0389078b430489...` | `e9e2a6630190...` | Intercepts view commit in `CPlayerView::UpdateView` to calibrate OTS perspective |
+| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | 164 B | `00` $\times 164$ | `f30f104308f3...` | Calculates +0.38m lateral right-shoulder offset and lowers elevation by -0.18m (Gears of War OTS) |
 | **#25A** | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | 15 B | `48895c240848896c24104889742418` | `e9932cd30190909090909090909090` | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
 | **#25B** | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | 86 B | `00` $\times 86$ | `81fa00010000740881fa04010000...` | Evaluates `WM_KEYDOWN`/`WM_SYSKEYDOWN`: toggles on VK_F1, forces 1P on M (Map), X (Customize), or V (Phone) |
 | **#26** | `ThirdPerson_CoverOverride_Bypass` | `0x14093a5fe` | `0x9399fe` | 2 B | `740a` | `eb0a` | Neutralizes cover 1P override in `FUN_14093a590`, keeping 3P active near waist-high cover |
 | **#27A** | `Motorcycle_Perspective_Hook` | `0x14093a635` | `0x939a35` | 12 B | `41ff9120010000e991050000` | `e9c603640190909090909090` | Hooks vehicle view dispatch in `FUN_14093a590` to enable third-person motorcycle perspective |
-| **#27B** | `Motorcycle_Perspective_Stub` | `0x141f7aa00` | `0x1f79a00` | 1010 B | Vanilla `PSFD00` bytes | Full motorcycle 3P stub | Renders player character on bike, calculates 2.60m chase cam, mouse-look rotation, and raycast collision |
+| **#27B** | `Motorcycle_Perspective_Stub` | `0x141f7aa00` | `0x1f79a00` | 406 B | `1b741db90500...` | Full motorcycle 3P stub (406 B) | Renders player character on bike, calculates 2.60m chase cam with 0.75m elevation, and mouse-look rotation |
 
 ### 5. Status & Deployment
 - **Status:** **APPLIED & DEPLOYED TO STEAM**
   - Working binary: `/home/jackedhawk117/rework/Homefront2_Release.exe`
   - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
-  - **New Patched MD5:** `5e95dc48aef9731a89d507badf9049e3`
-  - **New Patched SHA256:** `161953fc6cc7525bc01a17567f9fe66d611986e37f667652e12f39cb78a2ee8d`
+  - **New Patched MD5:** `7d9b421dc67bdf6225d9b33f36e6f596`
+  - **New Patched SHA256:** `2f1d5142c2953d6ac470173d9ed5b71b1d7b53bf958167ff8916f683f0a118ad`

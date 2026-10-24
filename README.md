@@ -60,8 +60,8 @@ flowchart LR
 | **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
 | **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
 | **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
-| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `5e95dc48aef9731a89d507badf9049e3` |
-| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `161953fc6cc7525bc01a17567f9fe66d611986e37f667652e12f39cb78a2ee8d` |
+| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `7d9b421dc67bdf6225d9b33f36e6f596` |
+| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `2f1d5142c2953d6ac470173d9ed5b71b1d7b53bf958167ff8916f683f0a118ad` |
 
 ---
 
@@ -124,13 +124,13 @@ All patches follow the **Zero-Data Modification Principle**: `.text` instruction
 | **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | `48 8b 02 ff 90 28 02 00 00` (9 B) | `e9 74 a7 63 01 90 90 90 90` (9 B) | Intercepts `CPlayerView::UpdateView` to trigger native `SetThirdPerson` on ADS toggle |
 | **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 128$ (cave in `.text`) | Full dynamic transition stub (128 bytes) | Synchronizes character meshes, weapon slots (`0x140826318`), and muzzle firing helpers |
 | **#23** | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | `f3 0f 10 1d 86 f3 75 01` | `f3 0f 10 1d 0a fb 94 01` | Tightens camera distance: 3.5m $\to$ 1.85m |
-| **#24A** | `ThirdPerson_CameraCollision_Hook` | `0x14093f469` | `0x93e869` | `8b 03 89 07 8b 43 04 89 47 04 ...` (16 B) | `e9 92 b1 63 01 90 ...` (16 B) | Hooks view commit in `CPlayerView::UpdateView` to jump to raycast collision solver |
-| **#24B** | `ThirdPerson_CameraCollision_Stub` | `0x141f7a600` | `0x1f79600` | Vanilla `PSFD00` bytes (1008 B) | Full SSE collision solver stub (1008 B) | Computes OTS offset and performs `RayWorldIntersection` against world geometry |
+| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | `8b 03 89 07 8b 43 04 89 47 04 ...` (16 B) | `e9 e2 a6 63 01 90 ...` (16 B) | Intercepts view commit in `CPlayerView::UpdateView` to calibrate OTS perspective |
+| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | `00` $\times 164$ (cave in `.text`) | Full OTS math stub (164 B) | Calculates +0.38m lateral right-shoulder offset and lowers elevation by -0.18m |
 | **#25A** | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | `48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18` (15 B) | `e9 93 2c d3 01 90 ...` (15 B) | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
 | **#25B** | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | `00` $\times 86$ (cave in `PSFD00`) | Key handler stub (86 B) | Toggles perspective on F1; auto-switches to 1P before Map (M), Weapon Customize (X), Phone (V) |
 | **#26** | `ThirdPerson_CoverOverride_Bypass` | `0x14093a5fe` | `0x9399fe` | `74 0a` (2 B) | `eb 0a` (2 B) | Neutralizes cover 1P override in `FUN_14093a590`, keeping 3P active near waist-high cover |
 | **#27A** | `Motorcycle_Perspective_Hook` | `0x14093a635` | `0x939a35` | `41 ff 91 20 01 00 00 e9 91 05 00 00` (12 B) | `e9 c6 03 64 01 90 ...` (12 B) | Hooks vehicle view dispatch in `FUN_14093a590` to enable third-person motorcycle perspective |
-| **#27B** | `Motorcycle_Perspective_Stub` | `0x141f7aa00` | `0x1f79a00` | Vanilla `PSFD00` bytes (1010 B) | Full motorcycle 3P stub (1010 B) | Renders player character on bike, calculates 2.60m chase cam, mouse-look rotation, and raycast collision |
+| **#27B** | `Motorcycle_Perspective_Stub` | `0x141f7aa00` | `0x1f79a00` | Vanilla `PSFD00` bytes (406 B) | Full motorcycle 3P stub (406 B) | Renders player character on bike, calculates 2.60m chase cam, mouse-look rotation, and 1P drop |
 
 ---
 
