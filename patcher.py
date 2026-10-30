@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Homefront: The Revolution (PC / CryEngine 3.8) - Autonomous Guerrilla & 12-Man Squad Patcher
+Homefront: The Revolution (PC / CryEngine 3.8) - Autonomous Guerrilla & Freedom Fighters Squad Overhaul Patcher
 Author: jackedhawk-117
 Repository: https://github.com/jackedhawk-117/Homefront-The-Revolution-reverse-engineered
 
@@ -9,16 +9,27 @@ Zero-Data Modification Principle: Redirects native .text instruction displacemen
 and immediate operands to existing constants, maintaining binary section headers
 and engine stability.
 
-Modular Patch Architecture:
-- Core Overhaul (Patches #1-#21, #29A-#29B, 25 patches) [STABLE / DEFAULT]:
-    Autonomous Guerrilla presence, 12-man squad recruitment cap, 75% squad damage
-    resistance (Freedom Fighters durability), urban collision clearance, instant combat
-    reactions, true marksman accuracy, expanded perimeter formations, and permanent
-    allied infrastructure hacking (GTK Hack Tool converts enemy drones, vehicles, and
-    turrets to permanent friendly allies).
-- Third-Person Camera Suite (Patches #22A-#28, 9 patches) [OPTIONAL / EXPERIMENTAL]:
-    Over-The-Shoulder (OTS) perspective, F1 hotkey toggle, dynamic ADS 1P zoom,
-    and cover fire override bypass.
+Feature Suite (31 Patches - Rock-Solid / Stable):
+- Autonomous Guerrilla Presence (Patches #1-#9):
+    Quadrupled ambient urban resistance population (caps raised 24 -> 96, 60 -> 150),
+    accelerated reinforcement repopulation, extended patrol grid radius.
+- 12-Man Squad Recruitment & Formations (Patches #10-#13):
+    Full 12-follower recruitment ceiling, expanded formation radius, dynamic spacing,
+    and adaptive follow corridors.
+- Urban Collision Clearance & Leash Tether (Patches #14-#16):
+    Zero companion doorway bottlenecks, 250m follower tether leash.
+- Instant Combat Reactions & True Marksman Accuracy (Patches #17-#18, #20A-#20C, #21):
+    Instant threat detection (0.0s latency), aggressive coordinated target acquisition,
+    zero companion weapon spread neutralization.
+- Freedom Fighters Squad Durability (Patch #19):
+    75% companion damage resistance, matching classic Freedom Fighters durability.
+- Permanent Infrastructure Hacking (Patches #29A-#29B):
+    GTK Hack Tool converts enemy drones, vehicles, and turrets into permanent friendly allies.
+- Freedom Fighters Tactical Squad Orders (Patches #30A-#30B, #31A-#31D):
+    Direct hotkey orders via Win32 message pump interception:
+      F2 -> Regroup / Follow Leader
+      F3 -> Attack / Push (25m look vector advance)
+      F4 -> Defend / Hold Position
 """
 
 import os
@@ -34,21 +45,8 @@ PATCH_FILE = os.path.join(SCRIPT_DIR, "patches.json")
 VANILLA_MD5 = "0326ea202fcd7ceb3760d14bc8d07f63"
 VANILLA_SHA256 = "c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c"
 
-CORE_PATCHED_MD5 = "cd55926bb464d2e33d25650494e5e7a8"
-CORE_PATCHED_SHA256 = "7361a8ce94f6009226023bef3230501f765902cf2aeb1ce2778f7e4055147559"
-
-FULL_PATCHED_MD5 = "560b60ddf35767f67e22113ef2c663c7"
-FULL_PATCHED_SHA256 = "fd9fa3703db338bc5c3d54ae1ee6bb2c5f3a18e471cafe0418e8974fd1fc69c7"
-
-CORE_PATCH_IDS = {
-    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-    "11", "12", "13", "14", "15", "16", "17", "18", "19",
-    "20A", "20B", "20C", "21", "29A", "29B"
-}
-
-THIRD_PERSON_PATCH_IDS = {
-    "22A", "22B", "23", "24A", "24B", "25A", "25B", "26", "28"
-}
+PATCHED_MD5 = "c122dca1ba3c2652c8cede6a7ed09119"
+PATCHED_SHA256 = "f3250c54a694719848318ab7fa095ebea50bf1882580c720169de58469bd9db6"
 
 
 def compute_hashes(file_path):
@@ -80,14 +78,9 @@ def verify_target(target_path, patches):
     print(f"[*] Current MD5:    {md5}")
     print(f"[*] Current SHA256: {sha256}")
 
-    core_patches = [p for p in patches if str(p["id"]) in CORE_PATCH_IDS]
-    tps_patches = [p for p in patches if str(p["id"]) in THIRD_PERSON_PATCH_IDS]
-
-    core_applied = 0
-    tps_applied = 0
-    total_applied = 0
-    total_vanilla = 0
-    total_custom = 0
+    applied_count = 0
+    vanilla_count = 0
+    custom_count = 0
 
     patch_states = {}
 
@@ -104,46 +97,41 @@ def verify_target(target_path, patches):
 
             if current == pat:
                 status = "PATCHED"
-                total_applied += 1
-                if p_id in CORE_PATCH_IDS:
-                    core_applied += 1
-                elif p_id in THIRD_PERSON_PATCH_IDS:
-                    tps_applied += 1
+                applied_count += 1
             elif current == orig:
                 status = "VANILLA"
-                total_vanilla += 1
+                vanilla_count += 1
             else:
                 status = "CUSTOM"
-                total_custom += 1
+                custom_count += 1
 
             patch_states[p_id] = status
 
     if md5 == VANILLA_MD5:
         print(f"[+] Binary Status: Clean Vanilla (Unmodified - 0/{len(patches)} Patches Active)")
-    elif md5 == CORE_PATCHED_MD5:
-        print(f"[+] Binary Status: Core Squad & Guerrilla Overhaul Active (Stable / Recommended - {core_applied}/{len(core_patches)} Core Patches, 3P Camera Inactive)")
-    elif md5 == FULL_PATCHED_MD5:
-        print(f"[+] Binary Status: Full Overhaul Active (Core + Third-Person Camera - All {total_applied}/{len(patches)} Patches Active)")
+    elif md5 == PATCHED_MD5:
+        print(f"[+] Binary Status: Freedom Fighters & Guerrilla Overhaul Active (Stable / Complete - {applied_count}/{len(patches)} Patches Active)")
     else:
-        print(f"[!] Binary Status: Custom / Partially Patched ({core_applied}/{len(core_patches)} Core, {tps_applied}/{len(tps_patches)} Third-Person)")
+        print(f"[!] Binary Status: Custom / Partially Patched ({applied_count}/{len(patches)} Active)")
 
-    print(f"\n--- [1] Core Squad & Guerrilla Overhaul (Patches #1-#21, #29A-#29B, {len(core_patches)} Patches) [STABLE / DEFAULT] ---")
-    for p in core_patches:
-        p_id = str(p["id"])
-        st = patch_states.get(p_id, "UNKNOWN")
-        print(f"  Patch #{p_id:<4} [{st:<7}] {p['name']:<38} (Offset: {hex(p['offset'])})")
+    # Group patches by category for visual display
+    categories = {}
+    for p in patches:
+        cat = p.get("category", "General")
+        categories.setdefault(cat, []).append(p)
 
-    print("\n--- [2] Third-Person Camera Suite (Patches #22A-#28) [OPTIONAL / EXPERIMENTAL] ---")
-    for p in tps_patches:
-        p_id = str(p["id"])
-        st = patch_states.get(p_id, "UNKNOWN")
-        print(f"  Patch #{p_id:<4} [{st:<7}] {p['name']:<38} (Offset: {hex(p['offset'])})")
+    for cat_name, cat_patches in categories.items():
+        print(f"\n--- {cat_name} ({len(cat_patches)} Patches) ---")
+        for p in cat_patches:
+            p_id = str(p["id"])
+            st = patch_states.get(p_id, "UNKNOWN")
+            print(f"  Patch #{p_id:<4} [{st:<7}] {p['name']:<38} (Offset: {hex(p['offset'])})")
 
-    print(f"\n[*] Summary: {total_applied}/{len(patches)} Patched ({core_applied}/{len(core_patches)} Core, {tps_applied}/{len(tps_patches)} Third-Person) | {total_vanilla}/{len(patches)} Vanilla" + (f" | {total_custom} Custom" if total_custom else ""))
+    print(f"\n[*] Summary: {applied_count}/{len(patches)} Patched | {vanilla_count}/{len(patches)} Vanilla" + (f" | {custom_count} Custom" if custom_count else ""))
     return True
 
 
-def apply_patches(target_path, patches, selected_ids=None, backup=True, profile_name="Core Squad Overhaul"):
+def apply_patches(target_path, patches, selected_ids=None, backup=True):
     if not os.path.isfile(target_path):
         print(f"[-] Error: Target executable not found: {target_path}")
         return False
@@ -157,7 +145,8 @@ def apply_patches(target_path, patches, selected_ids=None, backup=True, profile_
         else:
             print(f"[*] Existing backup found at {backup_path}.")
 
-    print(f"[*] Applying Profile: {profile_name}")
+    desc = f"Selected Patches ({len(selected_ids)})" if selected_ids else f"Freedom Fighters Overhaul (All {len(patches)} Patches)"
+    print(f"[*] Applying: {desc}")
 
     applied = 0
     with open(target_path, "r+b") as f:
@@ -191,10 +180,8 @@ def apply_patches(target_path, patches, selected_ids=None, backup=True, profile_
     print(f"[*] New Binary MD5:    {md5}")
     print(f"[*] New Binary SHA256: {sha256}")
 
-    if md5 == CORE_PATCHED_MD5:
-        print("[+] Verified: Executable matches verified Core Squad Overhaul build (Stable)!")
-    elif md5 == FULL_PATCHED_MD5:
-        print("[+] Verified: Executable matches verified Full Overhaul build (Core + Third-Person Camera)!")
+    if md5 == PATCHED_MD5:
+        print("[+] Verified: Executable matches verified Freedom Fighters & Guerrilla Overhaul build!")
 
     return True
 
@@ -240,8 +227,6 @@ def revert_patches(target_path, patches, selected_ids=None, description="Clean V
 
     if md5 == VANILLA_MD5:
         print("[+] Verified: Executable restored to 100% Clean Vanilla state!")
-    elif md5 == CORE_PATCHED_MD5:
-        print("[+] Verified: Executable cleanly restored to Core Squad Overhaul (Third-Person Camera removed)!")
 
     return True
 
@@ -252,80 +237,42 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Installation Modes & Examples:
 
-  1. Recommended Stable Installation (Core Autonomous Guerrilla & 12-Man Squad Overhaul):
+  1. Apply Complete Freedom Fighters & Guerrilla Overhaul (All 31 Patches):
      python3 patcher.py --apply Homefront2_Release.exe
-     (Applies Patches #1-#21, #29A-#29B: 12-man squad, 75% durability, 4x urban war pop, permanent hack, true aim)
+     (12-man squad, 75% durability, 4x urban war pop, permanent GTK hack, tactical squad orders F2-F4)
 
-  2. Full Overhaul including Experimental Third-Person OTS Camera Suite:
-     python3 patcher.py --apply --with-third-person Homefront2_Release.exe
-     (Applies all 34 patches: Core Guerrilla Overhaul + Third-Person Camera features)
-
-  3. Remove Third-Person Camera Only (keep Core Squad Overhaul active):
-     python3 patcher.py --revert-third-person Homefront2_Release.exe
-     (Reverts Patches #22A-#28 back to vanilla, restoring the stable 12-man squad & permanent hack build)
-
-  4. Verify Executable Status:
+  2. Verify Executable Status:
      python3 patcher.py --verify Homefront2_Release.exe
 
-  5. Full Revert to 100% Clean Vanilla:
+  3. Full Revert to 100% Clean Vanilla:
      python3 patcher.py --revert Homefront2_Release.exe
 
-  6. Selective Patch Application:
-     python3 patcher.py --apply Homefront2_Release.exe --patches 10,19,20A,20B,20C,21
+  4. Selective Patch Application:
+     python3 patcher.py --apply Homefront2_Release.exe --patches 10,19,30A,30B,31A,31B,31C,31D
 """
     )
     parser.add_argument("target", help="Path to Homefront2_Release.exe")
     parser.add_argument("--verify", action="store_true", help="Verify status of all patches on target binary")
-    parser.add_argument("--apply", action="store_true", help="Apply patches (Core Overhaul by default; use --with-third-person for 3P camera)")
-    parser.add_argument("--with-third-person", "--all", action="store_true", dest="with_third_person",
-                        help="Include optional / experimental Third-Person OTS Camera Suite (Patches #22A-#28)")
-    parser.add_argument("--third-person-only", action="store_true",
-                        help="Apply only the optional Third-Person Camera Suite (Patches #22A-#28)")
+    parser.add_argument("--apply", action="store_true", help="Apply complete Freedom Fighters & Guerrilla Overhaul (All 31 Patches)")
     parser.add_argument("--revert", action="store_true", help="Revert patches to clean vanilla")
-    parser.add_argument("--revert-third-person", "--without-third-person", action="store_true", dest="revert_third_person",
-                        help="Revert only the Third-Person Camera Suite (Patches #22A-#28), keeping Core Overhaul intact")
-    parser.add_argument("--patches", type=str, help="Comma-separated patch IDs to apply/revert (e.g. 10,19,21)")
+    parser.add_argument("--patches", type=str, help="Comma-separated patch IDs to apply/revert (e.g. 10,19,30A,30B)")
     parser.add_argument("--no-backup", action="store_true", help="Do not create a .vanilla backup before patching")
 
     args = parser.parse_args()
 
     patches = load_patches()
 
-    # Determine patch selection and profile
-    if args.revert_third_person:
-        # Revert only third-person camera patches
-        revert_patches(
-            args.target,
-            patches,
-            selected_ids=THIRD_PERSON_PATCH_IDS,
-            description="Core Squad Overhaul (Disabling Third-Person Camera)"
-        )
-    elif args.revert:
+    if args.revert:
         selected_ids = [s.strip() for s in args.patches.split(",")] if args.patches else None
         desc = f"Selected Patches ({args.patches})" if selected_ids else "Clean Vanilla"
         revert_patches(args.target, patches, selected_ids=selected_ids, description=desc)
     elif args.apply:
-        if args.patches:
-            selected_ids = [s.strip() for s in args.patches.split(",")]
-            profile = f"Custom Patches ({args.patches})"
-        elif args.third_person_only:
-            selected_ids = THIRD_PERSON_PATCH_IDS
-            profile = "Third-Person Camera Suite Only (Patches #22A-#28)"
-        elif args.with_third_person:
-            selected_ids = None  # None means all patches in patches.json
-            profile = "Full Overhaul (Core Squad Overhaul + Third-Person Camera Suite)"
-        else:
-            # Default behavior: Core Overhaul only
-            selected_ids = CORE_PATCH_IDS
-            profile = "Core Guerrilla & Squad Overhaul (Stable / Default - Patches #1-#21, #29A-#29B)"
-            print("[*] Note: Applying stable Core Overhaul. To include experimental 3P camera, use '--with-third-person'.")
-
+        selected_ids = [s.strip() for s in args.patches.split(",")] if args.patches else None
         apply_patches(
             args.target,
             patches,
             selected_ids=selected_ids,
-            backup=not args.no_backup,
-            profile_name=profile
+            backup=not args.no_backup
         )
     else:
         # Default action: verify

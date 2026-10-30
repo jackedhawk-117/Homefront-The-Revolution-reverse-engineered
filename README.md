@@ -1,21 +1,22 @@
-# Homefront: The Revolution — Autonomous Guerrilla & 12-Man Squad Overhaul
+# Homefront: The Revolution — Autonomous Guerrilla & Freedom Fighters Squad Overhaul
 
 [![Platform: PC / Steam](https://img.shields.io/badge/Platform-PC%20%2F%20Steam%20(x86--64)-blue.svg)](#)
 [![Engine: CryEngine 3.8](https://img.shields.io/badge/Engine-CryEngine%203.8-red.svg)](#)
-[![Patches: 34 Verified](https://img.shields.io/badge/Patches-34%20Verified%20(25%20Core%20%2B%209%20Optional)-brightgreen.svg)](#master-patch-matrix)
+[![Patches: 31 Verified](https://img.shields.io/badge/Patches-31%20Verified%20(Freedom%20Fighters%20Overhaul)-brightgreen.svg)](#master-patch-matrix)
 [![Durability: Freedom Fighters](https://img.shields.io/badge/Durability-Freedom%20Fighters%20(2003)-orange.svg)](#)
 [![Guide: Installation](https://img.shields.io/badge/Guide-Installation%20(Win%20%2F%20Linux%20%2F%20Deck)-blueviolet.svg)](INSTALLATION.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Reverse engineering research, documentation, reconstructed C++ headers, and an automated modular binary patcher for *Homefront: The Revolution* (CryEngine 3.8 x86-64).
+Reverse engineering research, documentation, reconstructed C++ headers, and an automated binary patcher for *Homefront: The Revolution* (CryEngine 3.8 x86-64).
 
-Inspired by IO Interactive's classic ***Freedom Fighters* (2003)**, this project transforms single-player campaign companions from fragile, 4-man fodder into an autonomous, lethal **12-member guerrilla fireteam** backed by active open-world military presence and true marksman accuracy.
+Inspired by IO Interactive's classic ***Freedom Fighters* (2003)**, this project transforms single-player campaign companions from fragile, 4-man fodder into an autonomous, lethal **12-member guerrilla fireteam** backed by active open-world military presence, permanent infrastructure hacking, and **tactical squad hotkey commands (F2 Regroup, F3 Attack, F4 Defend)**.
 
 > [!NOTE]
-> **Modular Architecture & Optional Third-Person Camera:**
-> The **Core Autonomous Guerrilla & 12-Man Squad Overhaul** (Patches #1–#21, #29A–#29B, 25 patches) is 100% stable, fully tested, and installed by default.
+> **Complete Freedom Fighters Squad System (Patches #1–#21, #29A–#29B, #30A–#31D, 31 Patches):**
+> 100% stable, fully tested, and verified.
+> Includes the complete Freedom Fighters tactical command suite (`F2`, `F3`, `F4`), 12-man recruitment cap, 75% squad damage resistance, zero-hesitation reactions, marksman accuracy, and permanent allied drone/vehicle hacking.
 > 
-> The **Third-Person OTS Camera Suite** (Patches #22A–#28, 9 patches) is maintained as an **optional / experimental module** (`--with-third-person`). Because *Homefront: The Revolution* was originally designed around first-person mechanics, third-person perspective can exhibit engine-level friction (interior camera collision clipping, vehicle cameras, and specific animation states). Keeping the 3P camera optional ensures that players seeking the intended bug-free squad overhaul can install it with complete confidence.
+> *Historical note:* The earlier experimental third-person camera suite was retired to avoid engine-level animation/camera clipping frictions, preserving the rock-solid stability and responsiveness of the native first-person guerrilla gameplay.
 
 > **Disclaimer:** No copyrighted game executables, level archives, textures, or media assets are hosted in this repository. All modifications are delivered as mathematical instruction offsets and applied to a legally owned copy of `Homefront2_Release.exe`.
 
@@ -23,15 +24,13 @@ Inspired by IO Interactive's classic ***Freedom Fighters* (2003)**, this project
 
 ## Table of Contents
 1. [Key Features & Gameplay Transformation](#key-features--gameplay-transformation)
-2. [Target Binary Baseline](#target-binary-baseline)
-3. [Installation Guide (Windows / Linux / Steam Deck)](INSTALLATION.md)
-4. [Quick Start & Patcher Usage](#quick-start--patcher-usage)
-5. [Master Patch Matrix](#master-patch-matrix)
-   - [Part I: Core Autonomous Guerrilla & Squad Overhaul (Patches #1–#21, #29A–#29B)](#part-i-core-autonomous-guerrilla--squad-overhaul-patches-121-29a29b-stable--recommended)
-   - [Part II: Third-Person Camera Suite (Patches #22A–#28)](#part-ii-third-person-camera-suite-patches-22a28-optional--experimental)
-6. [In-Game Combat Verification](#in-game-combat-verification)
-7. [Architecture & Reverse Engineering Findings](#architecture--reverse-engineering-findings)
-8. [Third-Person Over-the-Shoulder (OTS) Camera Architecture](#third-person-over-the-shoulder-ots-camera-architecture)
+2. [Freedom Fighters Tactical Squad Commands](#freedom-fighters-tactical-squad-commands)
+3. [Target Binary Baseline](#target-binary-baseline)
+4. [Installation Guide (Windows / Linux / Steam Deck)](INSTALLATION.md)
+5. [Quick Start & Patcher Usage](#quick-start--patcher-usage)
+6. [Master Patch Matrix](#master-patch-matrix)
+7. [In-Game Combat Verification](#in-game-combat-verification)
+8. [Architecture & Reverse Engineering Findings](#architecture--reverse-engineering-findings)
 9. [Repository Structure](#repository-structure)
 10. [License](#license)
 
@@ -47,9 +46,14 @@ flowchart LR
     A -->|2-Second Staring Contest| E["Patched: Instant Reaction (<200ms)"]
     A -->|Artificial Miss Spread| F["Patched: True Center-Mass Aim"]
     A -->|Passive World Pop: 24| G["Patched: Active War Ceiling (96/150)"]
+    A -->|Passive Follow Only| H["Patched: Tactical Orders (F2/F3/F4)"]
 ```
 
-### Core Squad & Guerrilla Overhaul (Stable / Default):
+### Complete Overhaul Highlights:
+- **Freedom Fighters Tactical Squad Orders (Patches #30A–#30B, #31A–#31D):** Gives the player direct command over their recruited squad in real time using dedicated hotkeys:
+  - **`F2` — Regroup / Follow Leader:** Squad immediately disengages from holding ground or forward pushes, re-anchors to Ethan Brady, and forms up dynamically.
+  - **`F3` — Attack / Push:** Squad advances 25 meters forward along the player's look vector, aggressive pushing towards the target zone while engaging hostile forces.
+  - **`F4` — Defend / Hold Position:** Squad snapshots their current location as a fixed formation anchor, holding ground and providing suppressive crossfire while the player flanks.
 - **12-Member Fireteam Recruitment (Patch #10):** Expands the player's single-player companion recruitment limit from 4 to 12. Intrusive circular doubly-linked list accommodates 12 agents with zero memory reallocation.
 - **Freedom Fighters Combat Durability (Patch #19):** Grants followers 75% damage resistance (4x effective HP), allowing fighters to survive 12–15 assault rifle rounds rather than dropping instantly.
 - **Zero-Hesitation Combat Reaction (Patches #20A–#20C):** Eliminates the artificial 2-second staring delay when AI encounters enemies outside cover; units engage and open fire within 150ms.
@@ -57,27 +61,39 @@ flowchart LR
 - **Urban Navigation & Choke Point Queueing (Patches #14 & #15):** Calibrates inter-agent personal space to 0.25m, allowing all 12 followers to stream through narrow 1.2m outpost doors without jamming.
 - **Tactical Cover Perimeter (Patches #11, #12 & #13):** Expands formation radius from 2m/3m to ~22m so 12 squad members fan out into distinct cover positions instead of collapsing into a clump.
 - **Target Memory & Rooftop Acquisition (Patches #17 & #18):** Extends sight-loss memory from 2s to 30s and enables infinite elevation sight, preventing the squad from ignoring rooftop snipers.
+- **Extended Follower Tether Leash (Patch #16):** Extends the follower tether leash from 100m to 250m, enabling wide flanking maneuvers and tactical hold-position orders without followers auto-dismissing.
 - **Permanent Allied Infrastructure Hack (Patches #29A & #29B):** Throwable GTK Hack Tool converts enemy drones (Seeker, Sniper, Heavy Drone), Wolverine APVs, and automated machinery into permanent Resistance allies fighting until destroyed by enemy gunfire, with locked full circular HUD timer.
 - **Overwhelming KPA Guerrilla Presence (Patches #1–#9):** Raises soft active AI limits from 24 to 96 and hard limits to 150, quadrupling dynamic patrols and reinforcement presence.
 
-### Optional Third-Person OTS Camera Suite (Experimental):
-- **Over-The-Shoulder Third-Person Camera & Dynamic Aiming (Patches #22A–#28):** Traversal and hipfiring can be toggled into a cinematic *Gears of War* over-the-shoulder 3rd-person perspective (+0.38m lateral right-shoulder offset, -0.18m elevation, 1.85m distance).
-- **Physical F1 Hotkey Toggle (Patches #25A & #25B):** Toggles between pure vanilla 1st-person and 3rd-person OTS on the fly (starts in 1st person by default). Automatically reverts to 1st person before opening Map (`M`), Weapon Customization (`X`), or Phone (`V`).
-- **Dynamic ADS Iron Sights (Patches #22A & #22B):** Right-Click toggle ADS dynamically snaps into 1st-person weapon sights for pinpoint accuracy, returning to 3rd-person OTS on toggle-off.
-- **Cover & Blindfire Bypass (Patches #26 & #28):** Preserves 3rd-person view when crouched near waist-high barriers and routes weapon slots to permit hipfiring and blindfire from cover.
+---
+
+## Freedom Fighters Tactical Squad Commands
+
+In IO Interactive's classic *Freedom Fighters*, commanding freedom fighters across the urban battlefield relies on three iconic commands. We have natively reconstructed this complete command paradigm in CryEngine 3.8:
+
+| Hotkey | Order Name | Formation Engine Behavior | Tactical Usage |
+| :---: | :--- | :--- | :--- |
+| **`F2`** | **Follow / Regroup** | Re-links the squad's formation anchor `[rbx + 0xe0]` directly to player position vector each frame. | Call squad back to your position, regroup after heavy firefight, or navigate between safehouses. |
+| **`F3`** | **Attack / Push** | Reads player look direction vector (`g_playerForward`), computes vector displacement `playerPos + forward * 25.0f`, and sets advanced anchor. Squad pushes 25m forward into enemy lines. | Flush enemies out of fortifications, assault KPA checkpoints, or send squad ahead to breach courtyards. |
+| **`F4`** | **Defend / Hold** | Captures snapshot of current player position and freezes formation anchor `[rbx + 0xe0]`. Followers hold cover positions around anchor. | Hold defensive perimeters, defend hacking objectives, or create a firebase while the player flanks. |
+
+### Technical Architecture
+- **Input Pipeline:** The Win32 message pump in `WndProc` (`VA 0x1402494b8`) is intercepted by Patch #30A and routed to a dedicated handler stub (Patch #30B in section `PSFD00` cave). Key repeat messages (`lParam & 0x40000000`) are filtered, and command states are committed to zero-initialized BSS memory (`0x144000010`).
+- **Anchor Dispatcher:** In `FUN_1405c28b4` (`CDefendThePlayerLeader::Update`), Patch #31A diverts the unconditional frame overwrite at `VA 0x1405c2928` to our dynamic dispatcher (Patch #31B in `.text` cave). Mode 0 tracks the leader, Mode 1 calculates the 25m forward look-vector offset using cached forward vectors, and Mode 2 holds the static snapshot anchor.
+- **Forward Vector Caching:** Patch #31C hooks player look-direction reading at `VA 0x1405c2984`, routing to Patch #31D to store `g_playerForward` (`X, Y, Z`) in BSS memory (`0x144000030`).
 
 ---
 
 ## Target Binary Baseline
 
-| Attribute | Vanilla Original | Core Squad Overhaul (Default / Recommended) | Full Overhaul (Core + Experimental 3P Camera) |
-| :--- | :--- | :--- | :--- |
-| **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
-| **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
-| **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
-| **Active Patches** | 0 / 34 | 25 / 34 (Patches #1–#21, #29A–#29B) | 34 / 34 (All Patches) |
-| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `cd55926bb464d2e33d25650494e5e7a8` | `560b60ddf35767f67e22113ef2c663c7` |
-| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `7361a8ce94f6009226023bef3230501f765902cf2aeb1ce2778f7e4055147559` | `fd9fa3703db338bc5c3d54ae1ee6bb2c5f3a18e471cafe0418e8974fd1fc69c7` |
+| Attribute | Vanilla Original | Freedom Fighters & Guerrilla Overhaul |
+| :--- | :--- | :--- |
+| **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
+| **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
+| **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
+| **Active Patches** | 0 / 31 | 31 / 31 (All Patches Active) |
+| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `c122dca1ba3c2652c8cede6a7ed09119` |
+| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `f3250c54a694719848318ab7fa095ebea50bf1882580c720169de58469bd9db6` |
 
 ---
 
@@ -90,43 +106,29 @@ The included Python CLI tool ([`patcher.py`](patcher.py)) applies modifications 
 python3 patcher.py --verify /path/to/Homefront2_Release.exe
 ```
 
-### 2. Apply Recommended Core Overhaul (Stable / Default)
-Applies the 25 core patches (12-man squad, permanent hack, 75% durability, 4x urban war pop, instant reactions, true aim):
+### 2. Apply Complete Freedom Fighters Overhaul (All 31 Patches)
+Applies the full 31 patches (12-man squad, tactical orders F2–F4, permanent hack, 75% durability, 4x urban war pop, instant reactions, true aim):
 ```bash
 python3 patcher.py --apply /path/to/Homefront2_Release.exe
 ```
 
-### 3. (Optional) Apply Full Overhaul with Third-Person Camera
-Applies all 34 patches, enabling the experimental Third-Person OTS camera:
-```bash
-python3 patcher.py --apply --with-third-person /path/to/Homefront2_Release.exe
-```
-
-### 4. Remove Third-Person Camera (Revert to Core Overhaul)
-If you previously installed the 3P camera and want to remove it while keeping your 12-man squad overhaul intact:
-```bash
-python3 patcher.py --revert-third-person /path/to/Homefront2_Release.exe
-```
-
-### 5. Full Revert to Clean Vanilla
+### 3. Full Revert to Clean Vanilla
 Restores the executable 100% back to unmodded vanilla state:
 ```bash
 python3 patcher.py --revert /path/to/Homefront2_Release.exe
 ```
 
-### 6. Apply Specific Patches Only
+### 4. Apply Specific Patches Only
 ```bash
-# Example: Apply 12-man squad, durability, instant reaction, and true aim only
-python3 patcher.py --apply /path/to/Homefront2_Release.exe --patches 10,19,20A,20B,20C,21
+# Example: Apply 12-man squad, durability, and squad orders only
+python3 patcher.py --apply /path/to/Homefront2_Release.exe --patches 10,19,30A,30B,31A,31B,31C,31D
 ```
 
 ---
 
 ## Master Patch Matrix
 
-All patches adhere strictly to the **Zero-Data Modification Principle**: `.text` instructions are redirected to existing native constants in `.rdata` or use instruction immediates, preserving binary section headers and stability.
-
-### Part I: Core Autonomous Guerrilla & Squad Overhaul (Patches #1–#21, #29A–#29B) — *Stable / Recommended*
+All patches adhere strictly to the **Zero-Data Modification Principle**: `.text` instructions are redirected to existing native constants in `.rdata`, utilize unused executable code caves, or use instruction immediates, preserving binary section headers and stability.
 
 | Patch # | Parameter / Logic | Target VA | File Offset | Vanilla Bytes | Patched Bytes | Impact Summary |
 | :---: | :--- | :---: | :---: | :--- | :--- | :--- |
@@ -155,20 +157,12 @@ All patches adhere strictly to the **Zero-Data Modification Principle**: `.text`
 | **#21** | Companion Aim Spread Neutralization | `0x140706327` | `0x705727` | `e8 34 0c fe ff f3 0f 58 47 08 f3 0f 11 47 08` | `83 67 04 00 83 67 08 00 90 90 90 90 90 90 90` | Clears artificial pitch & yaw miss offsets |
 | **#29A** | `HackTool_PermanentFriendly_ExpirationBypass` | `0x140981803` | `0x980c03` | `76 46` (`jbe 0x14098184b`) | `90 90` (`nop; nop`) | Neutralizes timer expiration jump in `CHackingManager::Update`, permanently keeping hacked drones/turrets friendly |
 | **#29B** | `HackTool_PermanentFriendly_TimerFreeze` | `0x14098180d` | `0x980c0d` | `f3 0f 5c c7` (`subss xmm0, xmm7`) | `90 90 90 90` (`nop` $\times 4$) | Freezes remaining hack duration countdown, maintaining 100% full circular HUD ring and infinite friendly allegiance |
-
-### Part II: Third-Person Camera Suite (Patches #22A–#28) — *Optional / Experimental*
-
-| Patch # | Parameter / Logic | Target VA | File Offset | Vanilla Bytes | Patched Bytes | Impact Summary |
-| :---: | :--- | :---: | :---: | :--- | :--- | :--- |
-| **#22A** | `ThirdPerson_DynamicTransition_Hook` | `0x14093f357` | `0x93e757` | `48 8b 02 ff 90 28 02 00 00` (9 B) | `e9 74 a7 63 01 90 90 90 90` (9 B) | Intercepts `CPlayerView::UpdateView` to trigger native `SetThirdPerson` on ADS toggle |
-| **#22B** | `ThirdPerson_DynamicTransition_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 128$ (cave in `.text`) | Full dynamic transition stub (128 bytes) | Evaluates F1 toggle, ADS zoom (0.80f threshold preserves crouch-cover and traversal 3P) |
-| **#23** | `ThirdPerson_CameraDistance` | `0x1408a481a` | `0x8a3c1a` | `f3 0f 10 1d 86 f3 75 01` | `f3 0f 10 1d 0a fb 94 01` | Tightens camera distance: 3.5m $\to$ 1.85m |
-| **#24A** | `ThirdPerson_CameraOTS_Hook` | `0x14093f469` | `0x93e869` | `8b 03 89 07 8b 43 04 89 47 04 ...` (16 B) | `e9 e2 a6 63 01 90 ...` (16 B) | Intercepts view commit in `CPlayerView::UpdateView` to dispatch Gears of War OTS |
-| **#24B** | `ThirdPerson_CameraOTS_Stub` | `0x141f79b50` | `0x1f78f50` | `00` $\times 164$ (cave in `.text`) | Full camera stub (164 B) | Calibrates Gears of War OTS (+0.38m lateral right, -0.18m elevation) with zero external calls |
-| **#25A** | `WndProc_F1_Hook` | `0x1402494b8` | `0x2488b8` | `48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18` (15 B) | `e9 93 2c d3 01 90 ...` (15 B) | Intercepts Win32 `WndProc` message pump to detect physical F1 keydown messages without polling |
-| **#25B** | `WndProc_F1_Stub` | `0x141f7c150` | `0x1f7b150` | `00` $\times 86$ (cave in `PSFD00`) | Key handler stub (86 B) | Toggles perspective on F1; auto-switches to 1P before Map (M), Weapon Customize (X), Phone (V) |
-| **#26** | `ThirdPerson_CoverOverride_Bypass` | `0x14093a5fe` | `0x9399fe` | `74 0a` (2 B) | `eb 0a` (2 B) | Neutralizes cover 1P override in `FUN_14093a590`, keeping 3P active near waist-high cover |
-| **#28** | `Weapon_ThirdPersonFireSlot_Bypass` | `0x14082fe04` | `0x82f204` | `75 16` (`jne 0x14082fe1c`) (2 B) | `90 90` (`nop; nop`) (2 B) | Bypasses IsClient 1P slot override in `CWeapon::GetSlot`, enabling weapon firing and blindfire from low cover in 3P |
+| **#30A** | `WndProc_SquadCommands_Hook` | `0x1402494b8` | `0x2488b8` | `48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18` (15 B) | `e9 93 2c d3 01 90 ...` (15 B) | Intercepts Win32 `WndProc` message pump to capture physical `F2`, `F3`, `F4` hotkeys |
+| **#30B** | `WndProc_SquadCommands_Stub` | `0x141f7c150` | `0x1f7b150` | `00` $\times 74$ (cave in `PSFD00`) | Command dispatcher stub (74 B) | Filters key repeat, commits mode (0=Follow, 1=Attack, 2=Defend) and triggers to BSS memory |
+| **#31A** | `Squad_AnchorDispatcher_Hook` | `0x1405c2928` | `0x5c1d28` | `8b 08 89 8b e0 00 00 00 8b 48 ...` (26 B) | `e9 a3 71 9b 01 90 ...` (26 B) | Intercepts formation anchor update in `CDefendThePlayerLeader::Update` |
+| **#31B** | `Squad_AnchorDispatcher_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 209$ (cave in `.text`) | Formation anchor engine (209 B) | Dispatches Mode 0 (Follow), Mode 1 (Attack/Push 25m forward), or Mode 2 (Defend/Hold ground) |
+| **#31C** | `Squad_ForwardTracker_Hook` | `0x1405c2984` | `0x5c1d84` | `8b 88 a4 00 00 00 4c 8b f0 ...` (30 B) | `e9 27 72 9b 01 90 ...` (30 B) | Intercepts player forward look-vector reading |
+| **#31D** | `Squad_ForwardTracker_Stub` | `0x141f79bb0` | `0x1f78fb0` | `00` $\times 53$ (cave in `.text`) | Forward tracker stub (53 B) | Caches player look vector into BSS runtime memory (`0x144000030`) for 25m Attack/Push commands |
 
 ---
 
@@ -181,30 +175,22 @@ During live combat testing in high-threat red zones:
    - All 12 squad members received persistent 3D world overhead markers and compass/minimap blips.
 2. **Doorway & Outpost Transit:**
    - Squad successfully navigated narrow 1.2m interior safehouse doors in single-file queues without bunching or freezing.
-3. **Sustained Military Combat:**
+3. **Tactical Commands In Combat:**
+   - Pressing **`F4` (Defend)** anchored the squad in place; followers automatically sought waist-high cover and established suppressive fields of fire while the player advanced.
+   - Pressing **`F3` (Attack)** ordered followers to push forward 25m into enemy strongpoints, engaging KPA troops aggressively.
+   - Pressing **`F2` (Follow)** recalled all members back into formation around the player dynamically.
+4. **Sustained Military Combat:**
    - Under KPA airship alarm conditions, a 12-member squad engaged and defeated **three consecutive waves of 6-man KPA fireteams + Unmanned Infantry Vehicles (UIV drones)**.
-   - Even when the player fell in the 4th wave, the squad survived, held their perimeter, and repelled the remaining enemy forces.
+   - When the player fell in the 4th wave, the squad survived, held their perimeter, and repelled the remaining enemy forces.
 
 ---
 
 ## Architecture & Reverse Engineering Findings
 
 For detailed reverse engineering notes, decompilations, and mathematical formulas:
-- [`docs/REVERSE_ENGINEERING_NOTES.md`](docs/REVERSE_ENGINEERING_NOTES.md): Full chronological reverse engineering log (Phases 1–6).
+- [`docs/REVERSE_ENGINEERING_NOTES.md`](docs/REVERSE_ENGINEERING_NOTES.md): Full chronological reverse engineering log (Phases 1–7).
 - [`docs/COMBAT_AI_ARCHITECTURE.md`](docs/COMBAT_AI_ARCHITECTURE.md): Comprehensive analysis of CryEngine AI, EMD, DTP, and CoordinatedCombat.
-- [`include/`](include/): Reconstructed C++ header definitions (`DTP.h`, `CoordinatedCombat.h`, `GameRules.h`, `AICollisionAvoidance.h`, `VisionMap.h`, `SCVars.h`, `PlayerView.h`).
-
----
-
-## Third-Person Over-the-Shoulder (OTS) Camera Architecture
-
-CryEngine 3.8 in *Homefront: The Revolution* natively incorporates third-person camera and character mesh pipelines:
-- **Cinematic OTS Traversal:** During walking, sprinting, and hipfiring, the viewpoint is calibrated to an action-tight *Gears of War* OTS perspective (+0.38m lateral right-shoulder offset, -0.18m elevation, 1.85m distance). Ethan Brady's full 3D character mesh renders seamlessly.
-- **Native Right-Click Toggle ADS Aiming:** When Right-Click is pressed (vanilla toggle ADS), the engine's internal zoom state dynamically snaps perspective into vanilla 1st-person iron sights / scope aiming. Weapon lasers and sights align with zero parallax and laser-point precision. Clicking Right-Click again (toggle off) instantly snaps back to 3rd-person OTS.
-- **1st-Person Actions:** Before opening the full-screen Map (`M`), Weapon Customization wheel (`X`), or Phone terminal (`V`), the `WndProc` stub auto-switches to 1st person to preserve native UI functionality.
-- **Optional Status:** Because this suite pushes the engine beyond its single-player first-person design boundaries, certain vehicle perspectives or indoor collision clipping can be finicky. The patcher allows applying or removing this suite completely independently of the core squad overhaul.
-
-See [`docs/THIRD_PERSON_CAMERA.md`](docs/THIRD_PERSON_CAMERA.md) for complete architectural analysis and assembly diffs.
+- [`include/`](include/): Reconstructed C++ header definitions (`DTP.h`, `CoordinatedCombat.h`, `GameRules.h`, `AICollisionAvoidance.h`, `VisionMap.h`, `SCVars.h`).
 
 ---
 
@@ -215,21 +201,18 @@ See [`docs/THIRD_PERSON_CAMERA.md`](docs/THIRD_PERSON_CAMERA.md) for complete ar
 ├── README.md                          # Master project documentation
 ├── INSTALLATION.md                    # Step-by-step installation & platform guide
 ├── LICENSE                            # MIT License
-├── patches.json                       # Machine-readable patch definitions (32 entries)
+├── patches.json                       # Machine-readable patch definitions (31 entries)
 ├── patcher.py                         # Standalone modular binary patcher
 ├── docs/
-│   ├── REVERSE_ENGINEERING_NOTES.md  # Complete research notes (Phases 1–6)
-│   ├── COMBAT_AI_ARCHITECTURE.md     # CryEngine AI & combat subsystem analysis
-│   ├── THIRD_PERSON_FEASIBILITY.md    # Gears of War OTS 3rd-person spec
-│   └── THIRD_PERSON_CAMERA.md         # Third-person architecture & patch details
+│   ├── REVERSE_ENGINEERING_NOTES.md  # Complete research notes (Phases 1–7)
+│   └── COMBAT_AI_ARCHITECTURE.md     # CryEngine AI & combat subsystem analysis
 └── include/
     ├── DTP.h                          # DefendThePlayer structures & formation math
     ├── CoordinatedCombat.h            # Combat group, target memory, timers
     ├── GameRules.h                    # Cross-faction damage multiplier matrix
     ├── AICollisionAvoidance.h         # CryEngine avoidance solver parameters
     ├── VisionMap.h                    # Perception params & elevation sight cones
-    ├── SCVars.h                       # Game console variables & camera offsets
-    └── PlayerView.h                   # View parameters & SetThirdPerson API
+    └── SCVars.h                       # Game console variables & camera offsets
 ```
 
 ---

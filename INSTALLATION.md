@@ -1,6 +1,6 @@
 # Installation & Usage Guide
 
-This guide provides step-by-step instructions on how to install, verify, and uninstall the **Autonomous Guerrilla & 12-Man Squad Overhaul** for *Homefront: The Revolution*.
+This guide provides step-by-step instructions on how to install, verify, and use the **Autonomous Guerrilla & Freedom Fighters Squad Overhaul** for *Homefront: The Revolution*.
 
 ---
 
@@ -11,13 +11,9 @@ This guide provides step-by-step instructions on how to install, verify, and uni
    - [Windows (CMD / PowerShell)](#windows-cmd--powershell)
    - [Linux / Proton](#linux--proton)
    - [Steam Deck](#steam-deck)
-4. [Choosing Your Installation Profile](#choosing-your-installation-profile)
-   - [Profile 1: Core Squad & Guerrilla Overhaul (Stable / Default)](#profile-1-core-squad--guerrilla-overhaul-stable--default)
-   - [Profile 2: Full Overhaul with Third-Person Camera (Optional / Experimental)](#profile-2-full-overhaul-with-third-person-camera-optional--experimental)
+4. [Freedom Fighters Tactical Squad Hotkeys](#freedom-fighters-tactical-squad-hotkeys)
 5. [In-Game Verification Checklist](#in-game-verification-checklist)
-6. [How to Revert or Switch Modes](#how-to-revert-or-switch-modes)
-   - [Revert Third-Person Camera Only (Keep Squad Mod)](#revert-third-person-camera-only-keep-squad-mod)
-   - [Full Revert to Clean Vanilla](#full-revert-to-clean-vanilla)
+6. [How to Revert to Clean Vanilla](#how-to-revert-to-clean-vanilla)
 7. [Frequently Asked Questions & Troubleshooting](#frequently-asked-questions--troubleshooting)
 
 ---
@@ -47,24 +43,6 @@ Locate your game's `Bin64` directory:
 
 ---
 
-## Choosing Your Installation Profile
-
-The patcher supports modular installation:
-
-### Profile 1: Core Squad & Guerrilla Overhaul (Stable / Default)
-*Command:* `python3 patcher.py --apply <target>`
-- **Recommended for all players.**
-- Applies Patches #1–#21, #29A–#29B (25 patches): 12-man companion recruitment cap, permanent allied infrastructure hacking (GTK Hack Tool permanently converts enemy drones, turrets, and vehicles to friendly), 75% squad damage resistance (4x HP), instant combat reactions (<200ms), true marksman aim, doorway collision avoidance, and 4x active urban war presence.
-- 100% stable, fully tested, zero camera quirks. Keeps native first-person perspective intact.
-
-### Profile 2: Full Overhaul with Third-Person Camera (Optional / Experimental)
-*Command:* `python3 patcher.py --apply --with-third-person <target>`
-- Applies all 34 patches (Core Overhaul + Third-Person OTS Camera Suite).
-- Enables over-the-shoulder 3rd-person traversal, F1 hotkey toggle, and dynamic 1P iron sights aiming.
-- **Note:** Because the game was originally designed exclusively for first-person gameplay, 3P camera features can experience engine-level friction (such as interior wall collision clipping, vehicle cameras, and specific weapon animation states).
-
----
-
 ## Method 1: Automated Patcher (Recommended)
 
 The patcher modifies only the specific instruction bytes in your existing executable, creates an automatic backup (`Homefront2_Release.exe.vanilla`), and verifies file integrity in **under 0.1 seconds**.
@@ -88,16 +66,11 @@ The patcher modifies only the specific instruction bytes in your existing execut
    ```
    *You should see:* `[+] Binary Status: Clean Vanilla (Unmodified)`.
 
-4. **Apply the stable Core Squad Overhaul (Recommended):**
+4. **Apply the Freedom Fighters & Guerrilla Overhaul:**
    ```cmd
    python patcher.py --apply "C:\Program Files (x86)\Steam\steamapps\common\Homefront_The_Revolution\Bin64\Homefront2_Release.exe"
    ```
-   *The patcher will automatically create a backup at `Homefront2_Release.exe.vanilla` and apply the 25 core routines.*
-
-   *(Optional) If you wish to test the experimental Third-Person Camera suite:*
-   ```cmd
-   python patcher.py --apply --with-third-person "C:\Program Files (x86)\Steam\steamapps\common\Homefront_The_Revolution\Bin64\Homefront2_Release.exe"
-   ```
+   *The patcher will automatically create a backup at `Homefront2_Release.exe.vanilla` and apply all 31 verified patches.*
 
 5. Launch the game normally from your Steam Library!
 
@@ -111,14 +84,9 @@ The patcher modifies only the specific instruction bytes in your existing execut
    cd Homefront-The-Revolution-reverse-engineered
    ```
 
-2. **Apply the stable Core Squad Overhaul:**
+2. **Apply the Freedom Fighters & Guerrilla Overhaul:**
    ```bash
    python3 patcher.py --apply ~/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe
-   ```
-
-   *(Optional) To install with Third-Person Camera:*
-   ```bash
-   python3 patcher.py --apply --with-third-person ~/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe
    ```
 
 3. Launch the game via Steam with your preferred Proton version (e.g. Proton GE or Proton Experimental).
@@ -139,6 +107,18 @@ The patcher modifies only the specific instruction bytes in your existing execut
 
 ---
 
+## Freedom Fighters Tactical Squad Hotkeys
+
+While in-game, you can direct your recruited Resistance fighters at any time:
+
+| Hotkey | Tactical Order | Action & Squad Behavior |
+| :---: | :--- | :--- |
+| **`F2`** | **Follow / Regroup** | Calls all squad members to your position. Followers break off holding or pushing and dynamically follow Ethan Brady in tactical formation. |
+| **`F3`** | **Attack / Push** | Orders the squad to advance **25 meters forward** in the direction you are looking. Followers push into enemy positions, engaging targets aggressively. |
+| **`F4`** | **Defend / Hold Ground** | Freezes the squad's formation anchor at your current location. Followers take waist-high cover around the anchor, establish a defensive perimeter, and hold the ground. |
+
+---
+
 ## In-Game Verification Checklist
 
 Once inside the campaign:
@@ -150,32 +130,22 @@ Once inside the campaign:
 2. **Doorway & Outpost Exit Check:**
    - Walk through a standard interior door or safehouse exit.
    - Confirm all 12 followers stream out smoothly in a queue rather than freezing or wedging in the entrance.
-3. **Combat Reaction Speed:**
+3. **Tactical Commands Check:**
+   - Aim towards an open street or enemy barrier and press **`F3`**: squad advances 25m forward into the zone.
+   - Press **`F4`**: squad establishes a defensive line and holds ground.
+   - Press **`F2`**: squad regroups back to you immediately.
+4. **Combat Reaction Speed:**
    - Encounter a KPA patrol or airship alert.
    - Notice that both friendly fighters and KPA open fire instantly (~150ms) without standing around staring at each other.
-4. **Squad Survivability & Aim:**
+5. **Squad Survivability & Aim:**
    - Observe followers during a firefight: they survive 12–15 bullets (4x durability) and reliably hit targets with center-mass marksmanship.
-5. **Permanent Equipment Hack Check:**
+6. **Permanent Equipment Hack Check:**
    - Throw a GTK Hack Tool near an enemy drone, automated turret, or vehicle. Confirm that it converts to friendly, displays a full circular HUD timer, and fights alongside Ethan Brady indefinitely rather than reverting after a short timeout.
-6. **(Optional) Third-Person Controls (if `--with-third-person` was used):**
-   - Press **`F1`** to toggle between 1st-person and 3rd-person OTS view.
-   - Click **Right Mouse Button** (vanilla toggle ADS) to dynamically snap into 1st-person iron sights / reflex / sniper scope aiming.
-   - Map (`M`), Weapon Customization (`X`), and Phone (`V`) automatically revert to first-person view.
 
 ---
 
-## How to Revert or Switch Modes
+## How to Revert to Clean Vanilla
 
-You can manage or revert modifications at any time:
-
-### Revert Third-Person Camera Only (Keep Squad Mod)
-If you tried the experimental 3P camera and want to remove it while keeping your 12-man squad overhaul active:
-```bash
-python3 patcher.py --revert-third-person /path/to/Homefront2_Release.exe
-```
-*Restores the binary cleanly to the verified Core Squad Overhaul state (`cd55926bb464d2e33d25650494e5e7a8`).*
-
-### Full Revert to Clean Vanilla
 Restores the executable 100% back to unmodded vanilla original (`0326ea202fcd7ceb3760d14bc8d07f63`):
 ```bash
 python3 patcher.py --revert /path/to/Homefront2_Release.exe
@@ -189,11 +159,8 @@ python3 patcher.py --revert /path/to/Homefront2_Release.exe
 
 ## Frequently Asked Questions & Troubleshooting
 
-#### Q: Which mode should I install?
-**A:** We strongly recommend the **Core Squad Overhaul** (`python3 patcher.py --apply ...`). It gives you the full *Freedom Fighters* squad experience (12 followers, 4x health, instant reaction, true marksman accuracy, quadrupled war spawns, permanent infrastructure hack) with 100% stability. The Third-Person Camera is an optional experimental addition for players who specifically want an OTS perspective.
-
-#### Q: How do I know which mode is currently active on my executable?
-**A:** Run `python3 patcher.py --verify /path/to/Homefront2_Release.exe`. The patcher will inspect all 34 routines and report whether the binary is Clean Vanilla, Core Squad Overhaul Active, or Full Overhaul Active.
+#### Q: How do I verify my installation status?
+**A:** Run `python3 patcher.py --verify /path/to/Homefront2_Release.exe`. The patcher inspects all 31 routines and confirms the binary's MD5 checksum.
 
 #### Q: Will this break my existing save files?
 **A:** **No.** Save serialization in CryEngine stores follower assignments dynamically per NPC entity (`CGameAI::Serialize`). Your existing safehouse and campaign progress are 100% compatible.
