@@ -12,7 +12,7 @@ Reverse engineering research, documentation, reconstructed C++ headers, and an a
 Inspired by IO Interactive's classic ***Freedom Fighters* (2003)**, this project transforms single-player campaign companions from fragile, 4-man fodder into an autonomous, lethal **12-member guerrilla fireteam** backed by active open-world military presence, permanent infrastructure hacking, and **tactical squad hotkey commands (F2 Regroup, F3 Attack, F4 Defend)**.
 
 > [!NOTE]
-> **Complete Freedom Fighters Squad System (Patches #1–#21, #29A–#29B, #30A–#31D, 31 Patches):**
+> **Complete Freedom Fighters Squad System (Patches #1–#21, #29A–#29B, #30, #31A–#31D, 30 Patches):**
 > 100% stable, fully tested, and verified.
 > Includes the complete Freedom Fighters tactical command suite (`F2`, `F3`, `F4`), 12-man recruitment cap, 75% squad damage resistance, zero-hesitation reactions, marksman accuracy, and permanent allied drone/vehicle hacking.
 > 
@@ -78,8 +78,8 @@ In IO Interactive's classic *Freedom Fighters*, commanding freedom fighters acro
 | **`F4`** | **Defend / Hold** | Captures snapshot of current player position and freezes formation anchor `[rbx + 0xe0]`. Followers hold cover positions around anchor. | Hold defensive perimeters, defend hacking objectives, or create a firebase while the player flanks. |
 
 ### Technical Architecture
-- **Input Pipeline:** The Win32 message pump in `WndProc` (`VA 0x1402494b8`) is intercepted by Patch #30A and routed to a dedicated handler stub (Patch #30B in section `PSFD00` cave). Key repeat messages (`lParam & 0x40000000`) are filtered, and command states are committed to zero-initialized BSS memory (`0x144000010`).
-- **Anchor Dispatcher:** In `FUN_1405c28b4` (`CDefendThePlayerLeader::Update`), Patch #31A diverts the unconditional frame overwrite at `VA 0x1405c2928` to our dynamic dispatcher (Patch #31B in `.text` cave). Mode 0 tracks the leader, Mode 1 calculates the 25m forward look-vector offset using cached forward vectors, and Mode 2 holds the static snapshot anchor.
+- **Hardware Input Poller:** Rather than relying on window message pumps (`WndProc`), which CryEngine 3.8 and Proton bypass via DirectInput8 exclusive mode during gameplay, Patch #30 places a hardware input poller in the executable `PSFD00` cave (`VA 0x141f7c150`). It queries `USER32.dll!GetAsyncKeyState` (IAT `0x141f7e240`) per frame for physical key states (`F2`: `0x71`, `F3`: `0x72`, `F4`: `0x73`), filters key-down state transitions, and commits mode orders (`0`=Follow, `1`=Attack, `2`=Defend) and trigger pulses to BSS runtime memory (`0x144000010`).
+- **Anchor Dispatcher:** In `FUN_1405c28b4` (`CDefendThePlayerLeader::Update`), Patch #31A diverts the unconditional frame overwrite at `VA 0x1405c2928` to our dynamic dispatcher (Patch #31B in `.text` cave). It invokes the hardware poller, then dispatches the formation anchor: Mode 0 tracks the leader continuously, Mode 1 calculates the 25m forward look-vector offset using cached forward vectors, and Mode 2 holds the static snapshot anchor.
 - **Forward Vector Caching:** Patch #31C hooks player look-direction reading at `VA 0x1405c2984`, routing to Patch #31D to store `g_playerForward` (`X, Y, Z`) in BSS memory (`0x144000030`).
 
 ---
@@ -91,9 +91,9 @@ In IO Interactive's classic *Freedom Fighters*, commanding freedom fighters acro
 | **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
 | **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
 | **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
-| **Active Patches** | 0 / 31 | 31 / 31 (All Patches Active) |
-| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `c122dca1ba3c2652c8cede6a7ed09119` |
-| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `f3250c54a694719848318ab7fa095ebea50bf1882580c720169de58469bd9db6` |
+| **Active Patches** | 0 / 30 | 30 / 30 (All Patches Active) |
+| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `d78abc8af063d015779600dd7005b26c` |
+| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `859a5ba7a05ac9e6fe89da0386f78d1ce9b708bcc6323deb9bdf3e122eeff9fe` |
 
 ---
 
@@ -106,8 +106,8 @@ The included Python CLI tool ([`patcher.py`](patcher.py)) applies modifications 
 python3 patcher.py --verify /path/to/Homefront2_Release.exe
 ```
 
-### 2. Apply Complete Freedom Fighters Overhaul (All 31 Patches)
-Applies the full 31 patches (12-man squad, tactical orders F2–F4, permanent hack, 75% durability, 4x urban war pop, instant reactions, true aim):
+### 2. Apply Complete Freedom Fighters Overhaul (All 30 Patches)
+Applies the full 30 patches (12-man squad, tactical orders F2–F4, permanent hack, 75% durability, 4x urban war pop, instant reactions, true aim):
 ```bash
 python3 patcher.py --apply /path/to/Homefront2_Release.exe
 ```
@@ -121,7 +121,7 @@ python3 patcher.py --revert /path/to/Homefront2_Release.exe
 ### 4. Apply Specific Patches Only
 ```bash
 # Example: Apply 12-man squad, durability, and squad orders only
-python3 patcher.py --apply /path/to/Homefront2_Release.exe --patches 10,19,30A,30B,31A,31B,31C,31D
+python3 patcher.py --apply /path/to/Homefront2_Release.exe --patches 10,19,30,31A,31B,31C,31D
 ```
 
 ---
@@ -157,10 +157,9 @@ All patches adhere strictly to the **Zero-Data Modification Principle**: `.text`
 | **#21** | Companion Aim Spread Neutralization | `0x140706327` | `0x705727` | `e8 34 0c fe ff f3 0f 58 47 08 f3 0f 11 47 08` | `83 67 04 00 83 67 08 00 90 90 90 90 90 90 90` | Clears artificial pitch & yaw miss offsets |
 | **#29A** | `HackTool_PermanentFriendly_ExpirationBypass` | `0x140981803` | `0x980c03` | `76 46` (`jbe 0x14098184b`) | `90 90` (`nop; nop`) | Neutralizes timer expiration jump in `CHackingManager::Update`, permanently keeping hacked drones/turrets friendly |
 | **#29B** | `HackTool_PermanentFriendly_TimerFreeze` | `0x14098180d` | `0x980c0d` | `f3 0f 5c c7` (`subss xmm0, xmm7`) | `90 90 90 90` (`nop` $\times 4$) | Freezes remaining hack duration countdown, maintaining 100% full circular HUD ring and infinite friendly allegiance |
-| **#30A** | `WndProc_SquadCommands_Hook` | `0x1402494b8` | `0x2488b8` | `48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18` (15 B) | `e9 93 2c d3 01 90 ...` (15 B) | Intercepts Win32 `WndProc` message pump to capture physical `F2`, `F3`, `F4` hotkeys |
-| **#30B** | `WndProc_SquadCommands_Stub` | `0x141f7c150` | `0x1f7b150` | `00` $\times 74$ (cave in `PSFD00`) | Command dispatcher stub (74 B) | Filters key repeat, commits mode (0=Follow, 1=Attack, 2=Defend) and triggers to BSS memory |
+| **#30** | `Squad_InputPoller_Stub` | `0x141f7c150` | `0x1f7b150` | `00` $\times 78$ (cave in `PSFD00`) | Hardware key poller (78 B) | Queries `USER32.dll!GetAsyncKeyState` per-frame for F2, F3, and F4 physical key states, setting squad mode & triggers in BSS |
 | **#31A** | `Squad_AnchorDispatcher_Hook` | `0x1405c2928` | `0x5c1d28` | `8b 08 89 8b e0 00 00 00 8b 48 ...` (26 B) | `e9 a3 71 9b 01 90 ...` (26 B) | Intercepts formation anchor update in `CDefendThePlayerLeader::Update` |
-| **#31B** | `Squad_AnchorDispatcher_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 209$ (cave in `.text`) | Formation anchor engine (209 B) | Dispatches Mode 0 (Follow), Mode 1 (Attack/Push 25m forward), or Mode 2 (Defend/Hold ground) |
+| **#31B** | `Squad_AnchorDispatcher_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 214$ (cave in `.text`) | Formation anchor engine (214 B) | Invokes hardware poller, executes Mode 0 (Follow), Mode 1 (Attack/Push 25m forward), or Mode 2 (Defend/Hold ground) |
 | **#31C** | `Squad_ForwardTracker_Hook` | `0x1405c2984` | `0x5c1d84` | `8b 88 a4 00 00 00 4c 8b f0 ...` (30 B) | `e9 27 72 9b 01 90 ...` (30 B) | Intercepts player forward look-vector reading |
 | **#31D** | `Squad_ForwardTracker_Stub` | `0x141f79bb0` | `0x1f78fb0` | `00` $\times 53$ (cave in `.text`) | Forward tracker stub (53 B) | Caches player look vector into BSS runtime memory (`0x144000030`) for 25m Attack/Push commands |
 

@@ -160,7 +160,7 @@ python3 patcher.py --revert /path/to/Homefront2_Release.exe
 ## Frequently Asked Questions & Troubleshooting
 
 #### Q: How do I verify my installation status?
-**A:** Run `python3 patcher.py --verify /path/to/Homefront2_Release.exe`. The patcher inspects all 31 routines and confirms the binary's MD5 checksum.
+**A:** Run `python3 patcher.py --verify /path/to/Homefront2_Release.exe`. The patcher inspects all 30 routines and confirms the binary's MD5 checksum.
 
 #### Q: Will this break my existing save files?
 **A:** **No.** Save serialization in CryEngine stores follower assignments dynamically per NPC entity (`CGameAI::Serialize`). Your existing safehouse and campaign progress are 100% compatible.

@@ -6,8 +6,8 @@
 - **Original / Vanilla SHA256:** `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c`
 - **Vanilla Backup Path:** `/home/jackedhawk117/rework/Homefront2_Release.exe.vanilla`
 - **Working Patched Copy Path:** `/home/jackedhawk117/rework/Homefront2_Release.exe`
-- **Working Patched Copy MD5:** `c122dca1ba3c2652c8cede6a7ed09119`
-- **Working Patched Copy SHA256:** `f3250c54a694719848318ab7fa095ebea50bf1882580c720169de58469bd9db6`
+- **Working Patched Copy MD5:** `d78abc8af063d015779600dd7005b26c`
+- **Working Patched Copy SHA256:** `859a5ba7a05ac9e6fe89da0386f78d1ce9b708bcc6323deb9bdf3e122eeff9fe`
 - **Architecture:** PE32+ (x86-64 / AMD64), GUI subsystem
 - **Default Image Base:** `0x140000000`
 - **Entry Point RVA:** `0x1c512bc` (VA: `0x141c512bc`)
@@ -800,29 +800,29 @@ In CryEngine 3.8, companion group behavior is governed by `CDefendThePlayerLeade
 We allocate zero-initialized runtime variables in the PE BSS space without modifying `.rdata` or expanding file headers:
 - `0x144000010`: `g_squadCommandMode` (`uint32`: 0 = Follow, 1 = Attack/Push, 2 = Defend/Hold)
 - `0x144000014`: `g_squadCommandTrigger` (`uint32`: 1 = Follow trigger, 2 = Attack trigger, 3 = Defend trigger)
+- `0x144000018`: `g_lastKeys` (`uint32`: bitmask of keys held on previous frame for edge detection)
 - `0x144000030`: `g_playerForward_X` (`float`)
 - `0x144000034`: `g_playerForward_Y` (`float`)
 - `0x144000038`: `g_playerForward_Z` (`float`)
 
-### 4. Direct Win32 Input Interception (`WndProc`, Patches #30A & #30B)
-- **Patch #30A: Hook (`VA 0x1402494b8`, File Offset `0x2488b8`, 15 bytes):**
-  - Replaces the 15-byte function prologue (`mov [rsp+8], rbx; mov [rsp+0x10], rbp; mov [rsp+0x18], rsi`) with `jmp 0x141f7c150` + 10 NOPs.
-- **Patch #30B: Dispatcher Stub (`VA 0x141f7c150`, File Offset `0x1f7b150`, 74 bytes in `PSFD00` cave):**
-  - Filters for `WM_KEYDOWN` (`0x100`) and `WM_SYSKEYDOWN` (`0x104`).
-  - Filters out key repeat messages (`lParam & 0x40000000`).
-  - Evaluates `wParam` (`r8`):
-    - `VK_F2` (`0x71`): Sets `g_squadCommandMode = 0` (FOLLOW), `g_squadCommandTrigger = 1`.
-    - `VK_F3` (`0x72`): Sets `g_squadCommandMode = 1` (ATTACK), `g_squadCommandTrigger = 2`.
-    - `VK_F4` (`0x73`): Sets `g_squadCommandMode = 2` (DEFEND), `g_squadCommandTrigger = 3`.
-  - Re-executes prologue and jumps back to `VA 0x1402494c7`.
+### 4. Direct Hardware Input Polling via `USER32.dll!GetAsyncKeyState` (Patch #30)
+- **DirectInput8 vs WndProc Analysis:** CryEngine 3.8 utilizes DirectInput8 exclusive mode (`DirectInput8Create` at `0x24753be`) under Windows and Proton/Wine for gameplay inputs. Consequently, `WM_KEYDOWN` and `WM_SYSKEYDOWN` messages are bypassed during gameplay and never dispatched to `WndProc`. Hooking `WndProc` leaves hotkeys completely silent during combat.
+- **Hardware Keystroke Querying:** To ensure 100% reliable hotkey capture across Windows, Wine, and Proton in fullscreen/borderless modes, we query the physical keyboard state directly via native `USER32.dll!GetAsyncKeyState` (imported in PE IAT at `VA 0x141f7e240`).
+- **Patch #30: Hardware Input Poller (`VA 0x141f7c150`, File Offset `0x1f7b150`, 78 bytes in `PSFD00` cave):**
+  - Iterates through `VK_F2` (`0x71`), `VK_F3` (`0x72`), and `VK_F4` (`0x73`).
+  - Calls `GetAsyncKeyState` per key.
+  - Inspects sign bit (`test ah, 0x80`) to verify physical key-down state.
+  - Implements software edge-detection (`bt ebx, esi` against `g_lastKeys` at `0x144000018`) to trigger commands exclusively on the initial keypress edge, preventing runaway triggers while keys are held.
+  - Writes command mode (`0` = Follow, `1` = Attack, `2` = Defend) and trigger pulse (`1`, `2`, `3`) to BSS memory.
 
 ### 5. Dynamic Formation Anchor Engine (Patches #31A & #31B)
 - **Patch #31A: Hook (`VA 0x1405c2928`, File Offset `0x5c1d28`, 26 bytes):**
   - Replaces 26 bytes of unconditional anchor overwrites with `jmp 0x141f79ad0` + 21 NOPs.
-- **Patch #31B: Anchor Engine Stub (`VA 0x141f79ad0`, File Offset `0x1f78ed0`, 209 bytes in `.text` cave):**
-  - **Mode 0 (FOLLOW / F2):** Continuously writes `[rax..rax+8]` (player position) to `[rbx + 0xe0..0xe8]`.
+- **Patch #31B: Anchor Engine Stub (`VA 0x141f79ad0`, File Offset `0x1f78ed0`, 214 bytes in `.text` cave):**
+  - **Input Invocation:** First calls `Squad_InputPoller_Stub` (`call 0x141f7c150`) to evaluate hardware keystrokes on every formation update tick.
+  - **Mode 0 (FOLLOW / F2):** Continuously writes `[rax..rax+8]` (player position) to `[rbx + 0xe0..0xe8]`. Squad follows player.
   - **Mode 2 (DEFEND / F4):** When triggered (`trigger == 3`), writes a one-time snapshot of player position into `[rbx + 0xe0..0xe8]` and resets trigger to 0. On subsequent frames, skips writing player position, permanently locking the formation anchor in place.
-  - **Mode 1 (ATTACK / F3):** When triggered (`trigger == 2`), retrieves `g_playerForward` from `0x144000030`, scales by `25.0f` (`0x41c80000`), adds player position (`anchor = playerPos + forward * 25.0f`), and commits to `[rbx + 0xe0..0xe8]`. Squad pushes 25m forward into the target location.
+  - **Mode 1 (ATTACK / F3):** When triggered (`trigger == 2`), retrieves `g_playerForward` from `0x144000030`, scales by `25.0f` (`0x41c80000`), adds player position (`anchor = playerPos + forward * 25.0f`), and commits to `[rbx + 0xe0..0xe8]`. Squad pushes 25m forward into the target location and holds ground.
   - **EFLAGS Preservation:** Restores vanilla conditional jump test (`cmp byte ptr [rbx + 0x24], 0`) before returning to `0x1405c2942`, ensuring zero downstream control-flow corruption.
 
 ### 6. Forward Direction Tracker (Patches #31C & #31D)
@@ -835,19 +835,18 @@ We allocate zero-initialized runtime variables in the PE BSS space without modif
 
 | Patch # | Parameter / Logic | Target VA | File Offset | Vanilla Bytes | Patched Bytes | Purpose |
 | :---: | :--- | :---: | :---: | :--- | :--- | :--- |
-| **#30A** | `WndProc_SquadCommands_Hook` | `0x1402494b8` | `0x2488b8` | `48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18` (15 B) | `e9 93 2c d3 01 90 ...` (15 B) | Hooks Win32 message pump for F2/F3/F4 hotkeys |
-| **#30B** | `WndProc_SquadCommands_Stub` | `0x141f7c150` | `0x1f7b150` | `00` $\times 74$ | Stub (74 B) | Filters key repeats and dispatches squad order states to BSS memory |
+| **#30** | `Squad_InputPoller_Stub` | `0x141f7c150` | `0x1f7b150` | `00` $\times 78$ | Stub (78 B in `PSFD00`) | Hardware keyboard poller via `USER32.dll!GetAsyncKeyState`: queries F2, F3, and F4 physical key states per-frame |
 | **#31A** | `Squad_AnchorDispatcher_Hook` | `0x1405c2928` | `0x5c1d28` | `8b 08 89 8b e0 00 00 00 ...` (26 B) | `e9 a3 71 9b 01 90 ...` (26 B) | Hooks formation anchor update in `CDefendThePlayerLeader::Update` |
-| **#31B** | `Squad_AnchorDispatcher_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 209$ | Formation anchor engine (209 B) | Dispatches Follow (Mode 0), 25m Forward Push (Mode 1), and Hold Ground (Mode 2) |
+| **#31B** | `Squad_AnchorDispatcher_Stub` | `0x141f79ad0` | `0x1f78ed0` | `00` $\times 214$ | Formation anchor engine (214 B in `.text`) | Invokes hardware poller, dispatches Follow (Mode 0), 25m Forward Push (Mode 1), and Hold Ground (Mode 2) |
 | **#31C** | `Squad_ForwardTracker_Hook` | `0x1405c2984` | `0x5c1d84` | `8b 88 a4 00 00 00 4c 8b f0 ...` (30 B) | `e9 27 72 9b 01 90 ...` (30 B) | Hooks player look-vector reading in formation loop |
-| **#31D** | `Squad_ForwardTracker_Stub` | `0x141f79bb0` | `0x1f78fb0` | `00` $\times 53$ | Forward tracker stub (53 B) | Caches player forward vector into BSS memory (`0x144000030`) |
+| **#31D** | `Squad_ForwardTracker_Stub` | `0x141f79bb0` | `0x1f78fb0` | `00` $\times 53$ | Forward tracker stub (53 B in `.text`) | Caches player forward vector into BSS memory (`0x144000030`) |
 
 ### 8. Cryptographic Verification & Verification Matrix
 
 - **Clean Vanilla Original:**
   - MD5: `0326ea202fcd7ceb3760d14bc8d07f63`
   - SHA256: `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c`
-- **Freedom Fighters & Autonomous Guerrilla Overhaul (All 31 Patches Verified):**
-  - MD5: `c122dca1ba3c2652c8cede6a7ed09119`
-  - SHA256: `f3250c54a694719848318ab7fa095ebea50bf1882580c720169de58469bd9db6`
+- **Freedom Fighters & Autonomous Guerrilla Overhaul (All 30 Patches Verified):**
+  - MD5: `d78abc8af063d015779600dd7005b26c`
+  - SHA256: `859a5ba7a05ac9e6fe89da0386f78d1ce9b708bcc6323deb9bdf3e122eeff9fe`
 

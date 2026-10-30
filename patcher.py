@@ -9,7 +9,7 @@ Zero-Data Modification Principle: Redirects native .text instruction displacemen
 and immediate operands to existing constants, maintaining binary section headers
 and engine stability.
 
-Feature Suite (31 Patches - Rock-Solid / Stable):
+Feature Suite (30 Patches - Rock-Solid / Stable):
 - Autonomous Guerrilla Presence (Patches #1-#9):
     Quadrupled ambient urban resistance population (caps raised 24 -> 96, 60 -> 150),
     accelerated reinforcement repopulation, extended patrol grid radius.
@@ -25,8 +25,8 @@ Feature Suite (31 Patches - Rock-Solid / Stable):
     75% companion damage resistance, matching classic Freedom Fighters durability.
 - Permanent Infrastructure Hacking (Patches #29A-#29B):
     GTK Hack Tool converts enemy drones, vehicles, and turrets into permanent friendly allies.
-- Freedom Fighters Tactical Squad Orders (Patches #30A-#30B, #31A-#31D):
-    Direct hotkey orders via Win32 message pump interception:
+- Freedom Fighters Tactical Squad Orders (Patches #30, #31A-#31D):
+    Direct hardware keyboard query engine via USER32.dll!GetAsyncKeyState:
       F2 -> Regroup / Follow Leader
       F3 -> Attack / Push (25m look vector advance)
       F4 -> Defend / Hold Position
@@ -45,8 +45,8 @@ PATCH_FILE = os.path.join(SCRIPT_DIR, "patches.json")
 VANILLA_MD5 = "0326ea202fcd7ceb3760d14bc8d07f63"
 VANILLA_SHA256 = "c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c"
 
-PATCHED_MD5 = "c122dca1ba3c2652c8cede6a7ed09119"
-PATCHED_SHA256 = "f3250c54a694719848318ab7fa095ebea50bf1882580c720169de58469bd9db6"
+PATCHED_MD5 = "d78abc8af063d015779600dd7005b26c"
+PATCHED_SHA256 = "859a5ba7a05ac9e6fe89da0386f78d1ce9b708bcc6323deb9bdf3e122eeff9fe"
 
 
 def compute_hashes(file_path):
@@ -237,7 +237,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Installation Modes & Examples:
 
-  1. Apply Complete Freedom Fighters & Guerrilla Overhaul (All 31 Patches):
+  1. Apply Complete Freedom Fighters & Guerrilla Overhaul (All 30 Patches):
      python3 patcher.py --apply Homefront2_Release.exe
      (12-man squad, 75% durability, 4x urban war pop, permanent GTK hack, tactical squad orders F2-F4)
 
@@ -248,14 +248,14 @@ def main():
      python3 patcher.py --revert Homefront2_Release.exe
 
   4. Selective Patch Application:
-     python3 patcher.py --apply Homefront2_Release.exe --patches 10,19,30A,30B,31A,31B,31C,31D
+     python3 patcher.py --apply Homefront2_Release.exe --patches 10,19,30,31A,31B,31C,31D
 """
     )
     parser.add_argument("target", help="Path to Homefront2_Release.exe")
     parser.add_argument("--verify", action="store_true", help="Verify status of all patches on target binary")
-    parser.add_argument("--apply", action="store_true", help="Apply complete Freedom Fighters & Guerrilla Overhaul (All 31 Patches)")
+    parser.add_argument("--apply", action="store_true", help="Apply complete Freedom Fighters & Guerrilla Overhaul (All 30 Patches)")
     parser.add_argument("--revert", action="store_true", help="Revert patches to clean vanilla")
-    parser.add_argument("--patches", type=str, help="Comma-separated patch IDs to apply/revert (e.g. 10,19,30A,30B)")
+    parser.add_argument("--patches", type=str, help="Comma-separated patch IDs to apply/revert (e.g. 10,19,30,31A)")
     parser.add_argument("--no-backup", action="store_true", help="Do not create a .vanilla backup before patching")
 
     args = parser.parse_args()
