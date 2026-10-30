@@ -447,6 +447,34 @@
       "file_offset_hex": "0x82f204",
       "module": "third_person",
       "optional": true
+    },
+    {
+      "id": "29A",
+      "name": "HackTool_PermanentFriendly_ExpirationBypass",
+      "va": "0x140981803",
+      "offset": 9964547,
+      "size": 2,
+      "category": "Guerrilla Equipment / Hacking",
+      "desc": "Neutralizes hack expiration branch in CHackingManager::Update, permanently keeping drones, turrets, and automated machinery friendly until destroyed",
+      "original_hex": "7646",
+      "patched_hex": "9090",
+      "file_offset_hex": "0x980c03",
+      "module": "core",
+      "optional": false
+    },
+    {
+      "id": "29B",
+      "name": "HackTool_PermanentFriendly_TimerFreeze",
+      "va": "0x14098180d",
+      "offset": 9964557,
+      "size": 4,
+      "category": "Guerrilla Equipment / Hacking",
+      "desc": "Freezes remaining hack timer in CHackingManager::Update, maintaining 100% full HUD circular ring and infinite allied allegiance",
+      "original_hex": "f30f5cc7",
+      "patched_hex": "90909090",
+      "file_offset_hex": "0x980c0d",
+      "module": "core",
+      "optional": false
     }
   ]
 }

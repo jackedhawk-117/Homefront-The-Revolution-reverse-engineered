@@ -2,7 +2,7 @@
 
 [![Platform: PC / Steam](https://img.shields.io/badge/Platform-PC%20%2F%20Steam%20(x86--64)-blue.svg)](#)
 [![Engine: CryEngine 3.8](https://img.shields.io/badge/Engine-CryEngine%203.8-red.svg)](#)
-[![Patches: 32 Verified](https://img.shields.io/badge/Patches-32%20Verified%20(23%20Core%20%2B%209%20Optional)-brightgreen.svg)](#master-patch-matrix)
+[![Patches: 34 Verified](https://img.shields.io/badge/Patches-34%20Verified%20(25%20Core%20%2B%209%20Optional)-brightgreen.svg)](#master-patch-matrix)
 [![Durability: Freedom Fighters](https://img.shields.io/badge/Durability-Freedom%20Fighters%20(2003)-orange.svg)](#)
 [![Guide: Installation](https://img.shields.io/badge/Guide-Installation%20(Win%20%2F%20Linux%20%2F%20Deck)-blueviolet.svg)](INSTALLATION.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -13,7 +13,7 @@ Inspired by IO Interactive's classic ***Freedom Fighters* (2003)**, this project
 
 > [!NOTE]
 > **Modular Architecture & Optional Third-Person Camera:**
-> The **Core Autonomous Guerrilla & 12-Man Squad Overhaul** (Patches #1–#21, 23 patches) is 100% stable, fully tested, and installed by default.
+> The **Core Autonomous Guerrilla & 12-Man Squad Overhaul** (Patches #1–#21, #29A–#29B, 25 patches) is 100% stable, fully tested, and installed by default.
 > 
 > The **Third-Person OTS Camera Suite** (Patches #22A–#28, 9 patches) is maintained as an **optional / experimental module** (`--with-third-person`). Because *Homefront: The Revolution* was originally designed around first-person mechanics, third-person perspective can exhibit engine-level friction (interior camera collision clipping, vehicle cameras, and specific animation states). Keeping the 3P camera optional ensures that players seeking the intended bug-free squad overhaul can install it with complete confidence.
 
@@ -27,7 +27,7 @@ Inspired by IO Interactive's classic ***Freedom Fighters* (2003)**, this project
 3. [Installation Guide (Windows / Linux / Steam Deck)](INSTALLATION.md)
 4. [Quick Start & Patcher Usage](#quick-start--patcher-usage)
 5. [Master Patch Matrix](#master-patch-matrix)
-   - [Part I: Core Autonomous Guerrilla & Squad Overhaul (Patches #1–#21)](#part-i-core-autonomous-guerrilla--squad-overhaul-patches-121-stable--recommended)
+   - [Part I: Core Autonomous Guerrilla & Squad Overhaul (Patches #1–#21, #29A–#29B)](#part-i-core-autonomous-guerrilla--squad-overhaul-patches-121-29a29b-stable--recommended)
    - [Part II: Third-Person Camera Suite (Patches #22A–#28)](#part-ii-third-person-camera-suite-patches-22a28-optional--experimental)
 6. [In-Game Combat Verification](#in-game-combat-verification)
 7. [Architecture & Reverse Engineering Findings](#architecture--reverse-engineering-findings)
@@ -57,6 +57,7 @@ flowchart LR
 - **Urban Navigation & Choke Point Queueing (Patches #14 & #15):** Calibrates inter-agent personal space to 0.25m, allowing all 12 followers to stream through narrow 1.2m outpost doors without jamming.
 - **Tactical Cover Perimeter (Patches #11, #12 & #13):** Expands formation radius from 2m/3m to ~22m so 12 squad members fan out into distinct cover positions instead of collapsing into a clump.
 - **Target Memory & Rooftop Acquisition (Patches #17 & #18):** Extends sight-loss memory from 2s to 30s and enables infinite elevation sight, preventing the squad from ignoring rooftop snipers.
+- **Permanent Allied Infrastructure Hack (Patches #29A & #29B):** Throwable GTK Hack Tool converts enemy drones (Seeker, Sniper, Heavy Drone), Wolverine APVs, and automated machinery into permanent Resistance allies fighting until destroyed by enemy gunfire, with locked full circular HUD timer.
 - **Overwhelming KPA Guerrilla Presence (Patches #1–#9):** Raises soft active AI limits from 24 to 96 and hard limits to 150, quadrupling dynamic patrols and reinforcement presence.
 
 ### Optional Third-Person OTS Camera Suite (Experimental):
@@ -74,9 +75,9 @@ flowchart LR
 | **Executable Name** | `Homefront2_Release.exe` | `Homefront2_Release.exe` | `Homefront2_Release.exe` |
 | **Platform / Arch** | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) | Windows / Wine (x86-64 PE32+) |
 | **File Size** | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) | `41,827,328` bytes (42 MB) |
-| **Active Patches** | 0 / 32 | 23 / 32 (Patches #1–#21) | 32 / 32 (All Patches) |
-| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `96f593ff3c734855066daced924e6521` | `f9bcf502666adfe038d9143e2ab4d861` |
-| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `f9766b5340eb5edf84e3441c6b51be86e2316156db1137d07176a294867d074e` | `e3c7d3b439b56308effe3c9e8f428e7044d2cceb303c98fceab117299b9be2f2` |
+| **Active Patches** | 0 / 34 | 25 / 34 (Patches #1–#21, #29A–#29B) | 34 / 34 (All Patches) |
+| **MD5 Hash** | `0326ea202fcd7ceb3760d14bc8d07f63` | `cd55926bb464d2e33d25650494e5e7a8` | `560b60ddf35767f67e22113ef2c663c7` |
+| **SHA-256 Hash** | `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c` | `7361a8ce94f6009226023bef3230501f765902cf2aeb1ce2778f7e4055147559` | `fd9fa3703db338bc5c3d54ae1ee6bb2c5f3a18e471cafe0418e8974fd1fc69c7` |
 
 ---
 
@@ -90,13 +91,13 @@ python3 patcher.py --verify /path/to/Homefront2_Release.exe
 ```
 
 ### 2. Apply Recommended Core Overhaul (Stable / Default)
-Applies the 23 core patches (12-man squad, 75% durability, 4x urban war pop, instant reactions, true aim):
+Applies the 25 core patches (12-man squad, permanent hack, 75% durability, 4x urban war pop, instant reactions, true aim):
 ```bash
 python3 patcher.py --apply /path/to/Homefront2_Release.exe
 ```
 
 ### 3. (Optional) Apply Full Overhaul with Third-Person Camera
-Applies all 32 patches, enabling the experimental Third-Person OTS camera:
+Applies all 34 patches, enabling the experimental Third-Person OTS camera:
 ```bash
 python3 patcher.py --apply --with-third-person /path/to/Homefront2_Release.exe
 ```
@@ -125,7 +126,7 @@ python3 patcher.py --apply /path/to/Homefront2_Release.exe --patches 10,19,20A,2
 
 All patches adhere strictly to the **Zero-Data Modification Principle**: `.text` instructions are redirected to existing native constants in `.rdata` or use instruction immediates, preserving binary section headers and stability.
 
-### Part I: Core Autonomous Guerrilla & Squad Overhaul (Patches #1–#21) — *Stable / Recommended*
+### Part I: Core Autonomous Guerrilla & Squad Overhaul (Patches #1–#21, #29A–#29B) — *Stable / Recommended*
 
 | Patch # | Parameter / Logic | Target VA | File Offset | Vanilla Bytes | Patched Bytes | Impact Summary |
 | :---: | :--- | :---: | :---: | :--- | :--- | :--- |
@@ -152,6 +153,8 @@ All patches adhere strictly to the **Zero-Data Modification Principle**: `.text`
 | **#20B** | `cc_checkFrequency` | `0x1424aca10` | `0x24aa410` | `00 00 a0 40` (`5.0f`) | `cd cc 4c 3e` (**`0.2f`**) | Target state update rate: 0.2 Hz $\to$ 5.0 Hz |
 | **#20C** | `cc_reSeeTargetTime` | `0x1424aca20` | `0x24aa420` | `00 00 80 3f` (`1.0f`) | `cd cc cc 3d` (**`0.1f`**) | Line-of-sight re-acquisition: 1.0s $\to$ 100ms |
 | **#21** | Companion Aim Spread Neutralization | `0x140706327` | `0x705727` | `e8 34 0c fe ff f3 0f 58 47 08 f3 0f 11 47 08` | `83 67 04 00 83 67 08 00 90 90 90 90 90 90 90` | Clears artificial pitch & yaw miss offsets |
+| **#29A** | `HackTool_PermanentFriendly_ExpirationBypass` | `0x140981803` | `0x980c03` | `76 46` (`jbe 0x14098184b`) | `90 90` (`nop; nop`) | Neutralizes timer expiration jump in `CHackingManager::Update`, permanently keeping hacked drones/turrets friendly |
+| **#29B** | `HackTool_PermanentFriendly_TimerFreeze` | `0x14098180d` | `0x980c0d` | `f3 0f 5c c7` (`subss xmm0, xmm7`) | `90 90 90 90` (`nop` $\times 4$) | Freezes remaining hack duration countdown, maintaining 100% full circular HUD ring and infinite friendly allegiance |
 
 ### Part II: Third-Person Camera Suite (Patches #22A–#28) — *Optional / Experimental*
 

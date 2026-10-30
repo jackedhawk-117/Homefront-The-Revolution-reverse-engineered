@@ -10,10 +10,12 @@ and immediate operands to existing constants, maintaining binary section headers
 and engine stability.
 
 Modular Patch Architecture:
-- Core Overhaul (Patches #1-#21, 23 patches) [STABLE / DEFAULT]:
+- Core Overhaul (Patches #1-#21, #29A-#29B, 25 patches) [STABLE / DEFAULT]:
     Autonomous Guerrilla presence, 12-man squad recruitment cap, 75% squad damage
     resistance (Freedom Fighters durability), urban collision clearance, instant combat
-    reactions, true marksman accuracy, and expanded perimeter formations.
+    reactions, true marksman accuracy, expanded perimeter formations, and permanent
+    allied infrastructure hacking (GTK Hack Tool converts enemy drones, vehicles, and
+    turrets to permanent friendly allies).
 - Third-Person Camera Suite (Patches #22A-#28, 9 patches) [OPTIONAL / EXPERIMENTAL]:
     Over-The-Shoulder (OTS) perspective, F1 hotkey toggle, dynamic ADS 1P zoom,
     and cover fire override bypass.
@@ -32,16 +34,16 @@ PATCH_FILE = os.path.join(SCRIPT_DIR, "patches.json")
 VANILLA_MD5 = "0326ea202fcd7ceb3760d14bc8d07f63"
 VANILLA_SHA256 = "c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c"
 
-CORE_PATCHED_MD5 = "96f593ff3c734855066daced924e6521"
-CORE_PATCHED_SHA256 = "f9766b5340eb5edf84e3441c6b51be86e2316156db1137d07176a294867d074e"
+CORE_PATCHED_MD5 = "cd55926bb464d2e33d25650494e5e7a8"
+CORE_PATCHED_SHA256 = "7361a8ce94f6009226023bef3230501f765902cf2aeb1ce2778f7e4055147559"
 
-FULL_PATCHED_MD5 = "f9bcf502666adfe038d9143e2ab4d861"
-FULL_PATCHED_SHA256 = "e3c7d3b439b56308effe3c9e8f428e7044d2cceb303c98fceab117299b9be2f2"
+FULL_PATCHED_MD5 = "560b60ddf35767f67e22113ef2c663c7"
+FULL_PATCHED_SHA256 = "fd9fa3703db338bc5c3d54ae1ee6bb2c5f3a18e471cafe0418e8974fd1fc69c7"
 
 CORE_PATCH_IDS = {
     "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
     "11", "12", "13", "14", "15", "16", "17", "18", "19",
-    "20A", "20B", "20C", "21"
+    "20A", "20B", "20C", "21", "29A", "29B"
 }
 
 THIRD_PERSON_PATCH_IDS = {
@@ -117,15 +119,15 @@ def verify_target(target_path, patches):
             patch_states[p_id] = status
 
     if md5 == VANILLA_MD5:
-        print("[+] Binary Status: Clean Vanilla (Unmodified - 0/32 Patches Active)")
+        print(f"[+] Binary Status: Clean Vanilla (Unmodified - 0/{len(patches)} Patches Active)")
     elif md5 == CORE_PATCHED_MD5:
-        print(f"[+] Binary Status: Core Squad Overhaul Active (Stable / Recommended - {core_applied}/{len(core_patches)} Core Patches, 3P Camera Inactive)")
+        print(f"[+] Binary Status: Core Squad & Guerrilla Overhaul Active (Stable / Recommended - {core_applied}/{len(core_patches)} Core Patches, 3P Camera Inactive)")
     elif md5 == FULL_PATCHED_MD5:
         print(f"[+] Binary Status: Full Overhaul Active (Core + Third-Person Camera - All {total_applied}/{len(patches)} Patches Active)")
     else:
         print(f"[!] Binary Status: Custom / Partially Patched ({core_applied}/{len(core_patches)} Core, {tps_applied}/{len(tps_patches)} Third-Person)")
 
-    print("\n--- [1] Core Squad & Guerrilla Overhaul (Patches #1-#21) [STABLE / DEFAULT] ---")
+    print(f"\n--- [1] Core Squad & Guerrilla Overhaul (Patches #1-#21, #29A-#29B, {len(core_patches)} Patches) [STABLE / DEFAULT] ---")
     for p in core_patches:
         p_id = str(p["id"])
         st = patch_states.get(p_id, "UNKNOWN")
@@ -252,15 +254,15 @@ def main():
 
   1. Recommended Stable Installation (Core Autonomous Guerrilla & 12-Man Squad Overhaul):
      python3 patcher.py --apply Homefront2_Release.exe
-     (Applies Patches #1-#21: 12-man squad, 75% durability, 4x urban war pop, true aim)
+     (Applies Patches #1-#21, #29A-#29B: 12-man squad, 75% durability, 4x urban war pop, permanent hack, true aim)
 
   2. Full Overhaul including Experimental Third-Person OTS Camera Suite:
      python3 patcher.py --apply --with-third-person Homefront2_Release.exe
-     (Applies all 32 patches: Core Squad Overhaul + Third-Person Camera features)
+     (Applies all 34 patches: Core Guerrilla Overhaul + Third-Person Camera features)
 
   3. Remove Third-Person Camera Only (keep Core Squad Overhaul active):
      python3 patcher.py --revert-third-person Homefront2_Release.exe
-     (Reverts Patches #22A-#28 back to vanilla, restoring the stable 12-man squad build)
+     (Reverts Patches #22A-#28 back to vanilla, restoring the stable 12-man squad & permanent hack build)
 
   4. Verify Executable Status:
      python3 patcher.py --verify Homefront2_Release.exe
@@ -315,7 +317,7 @@ def main():
         else:
             # Default behavior: Core Overhaul only
             selected_ids = CORE_PATCH_IDS
-            profile = "Core Squad & Guerrilla Overhaul (Stable / Default - Patches #1-#21)"
+            profile = "Core Guerrilla & Squad Overhaul (Stable / Default - Patches #1-#21, #29A-#29B)"
             print("[*] Note: Applying stable Core Overhaul. To include experimental 3P camera, use '--with-third-person'.")
 
         apply_patches(

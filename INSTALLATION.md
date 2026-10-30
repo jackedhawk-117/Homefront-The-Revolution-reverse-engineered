@@ -54,12 +54,12 @@ The patcher supports modular installation:
 ### Profile 1: Core Squad & Guerrilla Overhaul (Stable / Default)
 *Command:* `python3 patcher.py --apply <target>`
 - **Recommended for all players.**
-- Applies Patches #1–#21 (23 patches): 12-man companion recruitment cap, 75% squad damage resistance (4x HP), instant combat reactions (<200ms), true marksman aim, doorway collision avoidance, and 4x active urban war presence.
+- Applies Patches #1–#21, #29A–#29B (25 patches): 12-man companion recruitment cap, permanent allied infrastructure hacking (GTK Hack Tool permanently converts enemy drones, turrets, and vehicles to friendly), 75% squad damage resistance (4x HP), instant combat reactions (<200ms), true marksman aim, doorway collision avoidance, and 4x active urban war presence.
 - 100% stable, fully tested, zero camera quirks. Keeps native first-person perspective intact.
 
 ### Profile 2: Full Overhaul with Third-Person Camera (Optional / Experimental)
 *Command:* `python3 patcher.py --apply --with-third-person <target>`
-- Applies all 32 patches (Core Overhaul + Third-Person OTS Camera Suite).
+- Applies all 34 patches (Core Overhaul + Third-Person OTS Camera Suite).
 - Enables over-the-shoulder 3rd-person traversal, F1 hotkey toggle, and dynamic 1P iron sights aiming.
 - **Note:** Because the game was originally designed exclusively for first-person gameplay, 3P camera features can experience engine-level friction (such as interior wall collision clipping, vehicle cameras, and specific weapon animation states).
 
@@ -92,7 +92,7 @@ The patcher modifies only the specific instruction bytes in your existing execut
    ```cmd
    python patcher.py --apply "C:\Program Files (x86)\Steam\steamapps\common\Homefront_The_Revolution\Bin64\Homefront2_Release.exe"
    ```
-   *The patcher will automatically create a backup at `Homefront2_Release.exe.vanilla` and apply the 23 core routines.*
+   *The patcher will automatically create a backup at `Homefront2_Release.exe.vanilla` and apply the 25 core routines.*
 
    *(Optional) If you wish to test the experimental Third-Person Camera suite:*
    ```cmd
@@ -155,7 +155,9 @@ Once inside the campaign:
    - Notice that both friendly fighters and KPA open fire instantly (~150ms) without standing around staring at each other.
 4. **Squad Survivability & Aim:**
    - Observe followers during a firefight: they survive 12–15 bullets (4x durability) and reliably hit targets with center-mass marksmanship.
-5. **(Optional) Third-Person Controls (if `--with-third-person` was used):**
+5. **Permanent Equipment Hack Check:**
+   - Throw a GTK Hack Tool near an enemy drone, automated turret, or vehicle. Confirm that it converts to friendly, displays a full circular HUD timer, and fights alongside Ethan Brady indefinitely rather than reverting after a short timeout.
+6. **(Optional) Third-Person Controls (if `--with-third-person` was used):**
    - Press **`F1`** to toggle between 1st-person and 3rd-person OTS view.
    - Click **Right Mouse Button** (vanilla toggle ADS) to dynamically snap into 1st-person iron sights / reflex / sniper scope aiming.
    - Map (`M`), Weapon Customization (`X`), and Phone (`V`) automatically revert to first-person view.
@@ -171,7 +173,7 @@ If you tried the experimental 3P camera and want to remove it while keeping your
 ```bash
 python3 patcher.py --revert-third-person /path/to/Homefront2_Release.exe
 ```
-*Restores the binary cleanly to the verified Core Squad Overhaul state (`96f593ff3c734855066daced924e6521`).*
+*Restores the binary cleanly to the verified Core Squad Overhaul state (`cd55926bb464d2e33d25650494e5e7a8`).*
 
 ### Full Revert to Clean Vanilla
 Restores the executable 100% back to unmodded vanilla original (`0326ea202fcd7ceb3760d14bc8d07f63`):
@@ -188,10 +190,10 @@ python3 patcher.py --revert /path/to/Homefront2_Release.exe
 ## Frequently Asked Questions & Troubleshooting
 
 #### Q: Which mode should I install?
-**A:** We strongly recommend the **Core Squad Overhaul** (`python3 patcher.py --apply ...`). It gives you the full *Freedom Fighters* squad experience (12 followers, 4x health, instant reaction, true marksman accuracy, quadrupled war spawns) with 100% stability. The Third-Person Camera is an optional experimental addition for players who specifically want an OTS perspective.
+**A:** We strongly recommend the **Core Squad Overhaul** (`python3 patcher.py --apply ...`). It gives you the full *Freedom Fighters* squad experience (12 followers, 4x health, instant reaction, true marksman accuracy, quadrupled war spawns, permanent infrastructure hack) with 100% stability. The Third-Person Camera is an optional experimental addition for players who specifically want an OTS perspective.
 
 #### Q: How do I know which mode is currently active on my executable?
-**A:** Run `python3 patcher.py --verify /path/to/Homefront2_Release.exe`. The patcher will inspect all 32 routines and report whether the binary is Clean Vanilla, Core Squad Overhaul Active, or Full Overhaul Active.
+**A:** Run `python3 patcher.py --verify /path/to/Homefront2_Release.exe`. The patcher will inspect all 34 routines and report whether the binary is Clean Vanilla, Core Squad Overhaul Active, or Full Overhaul Active.
 
 #### Q: Will this break my existing save files?
 **A:** **No.** Save serialization in CryEngine stores follower assignments dynamically per NPC entity (`CGameAI::Serialize`). Your existing safehouse and campaign progress are 100% compatible.

@@ -672,8 +672,104 @@ In `ThirdPerson_DynamicTransition_Stub` at `0x141f79ad0` (Patch #22B, 128 Bytes)
 | **#28** | `Weapon_ThirdPersonFireSlot_Bypass` | `0x14082fe04` | `0x82f204` | 2 B | `7516` | `9090` | Bypasses IsClient 1P slot override in `CWeapon::GetSlot`, enabling weapon firing and blindfire from low cover in 3P |
 
 ### 6. Status & Deployment
-- **Status:** **APPLIED & DEPLOYED TO STEAM**
-  - Working binary: `/home/jackedhawk117/rework/Homefront2_Release.exe`
-  - Steam binary: `/home/jackedhawk117/.steam/steam/steamapps/common/Homefront_The_Revolution/Bin64/Homefront2_Release.exe`
-  - **New Patched MD5:** `f9bcf502666adfe038d9143e2ab4d861`
-  - **New Patched SHA256:** `e3c7d3b439b56308effe3c9e8f428e7044d2cceb303c98fceab117299b9be2f2`
+- **Status:** **MODULAR PATCH SYSTEM DEPLOYED**
+  - Working test binary: `/home/jackedhawk117/rework/Homefront2_Release.exe`
+  - Vanilla reference: `/home/jackedhawk117/rework/Homefront2_Release.exe.vanilla`
+  - Modular options:
+    - Stable Core Overhaul (default): `python3 patcher.py --apply <target>`
+    - Optional Third-Person Camera: `python3 patcher.py --apply --with-third-person <target>`
+    - Remove Third-Person Camera: `python3 patcher.py --revert-third-person <target>`
+
+---
+
+## Phase 13: Permanent Friendly Infrastructure Hacking via CHackingManager Zero-Data Instruction Neutralization (October 30, 2026)
+
+### 1. Problem Analysis & Gameplay Objective
+In vanilla *Homefront: The Revolution*, the player's throwable GTK Hack Tool (`HackTool` / `isHackTool`) can be deployed near unmanned enemy drones (Seekers, Snipers, Heavy Drones), automated machinery, turrets, and Wolverine APVs. When detonated, target machinery is temporarily hijacked and fights for Ethan Brady's Resistance faction.
+
+However, in vanilla gameplay this allegiance is governed by a strict countdown timer (typically 20–30 seconds). Upon expiration:
+1. The machinery immediately reverts back to enemy KPA allegiance (`KPA_Combat` / hostile).
+2. Turrets and drones instantly turn and open fire on the player and recruited Resistance companions.
+3. The temporary nature discourages tactical deployment and drone escort gameplay.
+
+The objective is to make all hijacked machinery, drones, vehicles, and turrets **permanently allied** to the Resistance until destroyed by enemy gunfire, while maintaining full HUD timer ring visibility, proper cleanup when killed, and 100% zero-data reversibility.
+
+### 2. Reverse Engineering the CryEngine Hacking Subsystem
+
+Tracing source strings from `\Code\Game03\GameDll\HackingManager.cpp` and `VehicleActionHack.cpp` revealed the core class `CHackingManager` (vtable at `0x14210c140`):
+
+1. **Active Entity Topology:**
+   - Active hacked entities are tracked in an internal red-black tree / `std::map<EntityId, HackingStatus>` at `[CHackingManager + 0x48]`.
+   - Node structure `HackingStatus`:
+     - `[node + 0x18]`: `EntityId` of the hijacked machine.
+     - `[node + 0x48]`: `float fTotalDuration` (e.g. `30.0f`).
+     - `[node + 0x4c]`: `float fRemainingDuration` (e.g. `30.0f`).
+     - `[node + 0x20]`: HUD status icon descriptor.
+
+2. **Frame Update Loop (`CHackingManager::Update`, VA `0x140981784`, File Offset `0x980b84`):**
+   Every frame, the engine loops over all active nodes:
+   ```x86asm
+   0x1409817db: mov  rcx, [rip + 0x1af7996]
+   0x1409817e2: mov  edx, edi                  ; EntityId
+   0x1409817e4: mov  rax, [rcx]
+   0x1409817e7: call qword ptr [rax + 0x78]    ; pEntitySystem->GetEntity(EntityId)
+   0x1409817ea: test rax, rax
+   0x1409817ed: je   0x14098184b               ; IF NULL -> CLEANUP (calls OnHackingExpire)
+   0x1409817ef: mov  rcx, rax
+   0x1409817f2: call 0x14040c18c               ; IsDead()
+   0x1409817f7: test al, al
+   0x1409817f9: jne  0x14098184b               ; IF DEAD -> CLEANUP (calls OnHackingExpire)
+   0x1409817fb: movss xmm0, dword ptr [rbx+0x4c]; fRemainingDuration
+   0x140981800: comiss xmm0, xmm7              ; compare fRemainingDuration with fFrameTime
+   0x140981803: jbe  0x14098184b               ; IF fRemaining <= fFrameTime -> EXPIRES!
+   0x140981805: mov  rax, [r12+0xc0]
+   0x14098180d: subss xmm0, xmm7               ; fRemaining -= fFrameTime
+   0x140981811: movss [rbx+0x4c], xmm0         ; store back updated timer
+   0x140981816: movaps xmm6, xmm0
+   0x140981819: cmp  dword ptr [rax-8], 0
+   0x14098181d: divss xmm6, dword ptr [rbx+0x48]; progress = fRemaining / fTotal
+   0x140981844: call 0x14057e78c               ; Update HUD circular timer ring
+   ```
+
+3. **Expiration Logic (`CHackingManager::OnHackingExpire`, VA `0x140981600`):**
+   - At `VA 0x14098173c`, calls `CHackingManager::UnhackEntity` (`VA 0x140965a64`), which restores enemy allegiance.
+   - Cleans up HUD markers and removes the entity from the active tracking map.
+
+### 3. Native Zero-Data Modification Architecture
+
+Rather than attempting to manipulate floating-point timeout variables in memory or patch XML data tables, we neutralize the expiration mechanism directly at the assembly level using the Zero-Data Modification Principle:
+
+- **Patch #29A: Expiration Branch Neutralization (`VA 0x140981803`, File Offset `0x980c03`):**
+  - Vanilla: `76 46` (`jbe 0x14098184b`)
+  - Patched: `90 90` (`nop; nop`)
+  - Impact: Prevents elapsed time from ever jumping to `OnHackingExpire`. The expiration routine cannot be triggered by the frame timer.
+
+- **Patch #29B: Remaining Duration Countdown Freeze (`VA 0x14098180d`, File Offset `0x980c0d`):**
+  - Vanilla: `f3 0f 5c c7` (`subss xmm0, xmm7`)
+  - Patched: `90 90 90 90` (`nop; nop; nop; nop`)
+  - Impact: Prevents `fRemainingDuration` from decrementing. `xmm0` retains its initial full value.
+  - Calculation `divss xmm6, dword ptr [rbx + 0x48]` evaluates to `fTotal / fTotal = 1.0f` every frame. The circular HUD timer ring over hacked drones/vehicles stays 100% full and visible, confirming active friendly allegiance.
+
+- **Safety & Lifecycle Integrity:**
+  - **Entity Destruction:** If the hacked drone or APV is destroyed by enemy gunfire, `GetEntity() == nullptr` or `IsDead() == true` branches to `0x14098184b` normally. The dead machine is cleanly purged from memory with zero leaks and zero dangling pointers.
+  - **Level Transition & Save Reload:** `CHackingManager::Reset` (`VA 0x140983418`) cleanly purges all active nodes on map unload.
+
+### 4. Applied Binary Patches
+
+| Patch # | Parameter / Logic | Target VA | File Offset | Vanilla Bytes | Patched Bytes | Purpose |
+| :---: | :--- | :---: | :---: | :--- | :--- | :--- |
+| **#29A** | `HackTool_PermanentFriendly_ExpirationBypass` | `0x140981803` | `0x980c03` | `76 46` (`jbe 0x14098184b`) | `90 90` (`nop; nop`) | Neutralizes timer expiration jump in `CHackingManager::Update` |
+| **#29B** | `HackTool_PermanentFriendly_TimerFreeze` | `0x14098180d` | `0x980c0d` | `f3 0f 5c c7` (`subss xmm0, xmm7`) | `90 90 90 90` (`nop` $\times 4$) | Freezes timer countdown; locks HUD circular ring at 100% full |
+
+### 5. Cryptographic Verification & Verification Matrix
+
+- **Clean Vanilla:**
+  - MD5: `0326ea202fcd7ceb3760d14bc8d07f63`
+  - SHA256: `c81fc8d6d61195a8f99d303926bcf32f6ca6638d8fa2deac9fc2d10c9ae4133c`
+- **Core Guerrilla & Squad Overhaul (Patches #1–#21, #29A–#29B, 25 Patches) [STABLE]:**
+  - MD5: `cd55926bb464d2e33d25650494e5e7a8`
+  - SHA256: `7361a8ce94f6009226023bef3230501f765902cf2aeb1ce2778f7e4055147559`
+- **Full Overhaul (Core + Optional Third-Person Camera, 34 Patches Total) [EXPERIMENTAL]:**
+  - MD5: `560b60ddf35767f67e22113ef2c663c7`
+  - SHA256: `fd9fa3703db338bc5c3d54ae1ee6bb2c5f3a18e471cafe0418e8974fd1fc69c7`
+
